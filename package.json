@@ -1,0 +1,20 @@
+{
+  "name": "gasless-conviction-sdk",
+  "version": "0.0.0",
+  "description": "A service that periodically calculates conviction using the Ethereum blockchain and Ceramic",
+  "main": "index.js",
+  "author": "Kevin Siegler <17910833+topocount@users.noreply.github.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@tsconfig/node14": "^1.0.1",
+    "@types/node": "^16.4.10",
+    "debug": "^4.3.2",
+    "dotenv": "^10.0.0",
+    "ethers": "^5.4.3",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.1.0",
+    "tslint": "^6.1.3",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {}
+}
