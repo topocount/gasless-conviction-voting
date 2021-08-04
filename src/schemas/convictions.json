@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Convictions",
+  "properties": {
+    "context": {
+      "type": "string"
+    },
+    "supply": {
+      "type": "number"
+    },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/proposals"
+      }
+    },
+    "convictions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/convictions"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["context", "proposals", "convictions"],
+  "definitions": {
+    "proposals": {
+      "type": "string",
+      "maxLength": 150
+    },
+    "convictions": {
+      "type": "object",
+      "properties": {
+        "proposal": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "allocation": {
+          "type": "number"
+        }
+      },
+      "required": ["proposal", "allocation"]
+    }
+  }
+}

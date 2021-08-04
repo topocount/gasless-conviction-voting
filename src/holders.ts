@@ -1,5 +1,7 @@
 require("dotenv").config();
-const holdersLog = require("debug")("holders");
+const debug = require("debug");
+const holdersInfoLog = debug("info:holders");
+const holdersDebugLog = debug("debug:holders");
 import { ethers } from "ethers";
 
 const { providers, Contract } = ethers;
@@ -29,7 +31,7 @@ type HolderSnapshot = {
 
 // TODO: Add "To block" param to optimize the blockchain reads after initial
 // state is stored to ceramic
-async function fetchTokenHolders(
+export async function fetchTokenHolders(
   rawConfig: Config = {}
 ): Promise<HolderSnapshot> {
   const blockIncrement: number = rawConfig.blockIncrement
@@ -51,12 +53,12 @@ async function fetchTokenHolders(
     blockIncrement,
     quietIntervalThreshold,
   };
-  holdersLog(blockIncrement, quietIntervalThreshold);
+  holdersDebugLog(blockIncrement, quietIntervalThreshold);
   // Create Contract Instance to be queried
   const provider = new providers.JsonRpcProvider(process.env.ETH_RPC);
 
   const currentBlockNumber = await provider.getBlockNumber();
-  holdersLog("current block number: ", currentBlockNumber);
+  holdersDebugLog("current block number: ", currentBlockNumber);
   const tokenContract = new Contract(
     process.env.ERC20_ADDRESS,
     Erc20TransferAbi,
@@ -75,7 +77,7 @@ async function fetchTokenHolders(
     tokenContract
   );
 
-  holdersLog("number of non-zero addresses: ", holderBalances.size);
+  holdersDebugLog("number of non-zero addresses: ", holderBalances.size);
   return { holderBalances, currentBlockNumber };
 }
 
@@ -125,16 +127,16 @@ async function fetchHoldersFromTransferEvents(
       }
     }
     // TODO: Set up debug flag to make these quiet
-    holdersLog("token holders: ", holders.size);
-    holdersLog(`through block ${block - config.blockIncrement}`);
-    holdersLog((currentBlockNumber - block) / currentBlockNumber, "%");
+    holdersDebugLog("token holders: ", holders.size);
+    holdersDebugLog(`through block ${block - config.blockIncrement}`);
+    holdersDebugLog((currentBlockNumber - block) / currentBlockNumber, "%");
 
     // if there are no transfers over the configured quantity of consecutive
     // blockIncrements, the query terminates
     if (newTransfers.length === 0) intervalsWithNoTransfers++;
     else intervalsWithNoTransfers = 0;
     if (intervalsWithNoTransfers == config.quietIntervalThreshold) {
-      holdersLog(
+      holdersDebugLog(
         `No transfers in ${
           config.quietIntervalThreshold * config.blockIncrement
         } blocks. breaking...`
