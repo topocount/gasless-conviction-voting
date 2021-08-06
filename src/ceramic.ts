@@ -13,12 +13,26 @@ import { ethers } from "ethers";
 import { Caip10Link } from "@ceramicnetwork/stream-caip10-link";
 
 import { Convictions, ConvictionState, Participants, Proposal } from "./types";
+import { Storage } from "./types/storage.d";
 
 let seed: Uint8Array;
+
+// TODO: Create config type
+// TODO: separate this into a more resilient, self-sustaining structure
+// Ceramic and the holders fetchers should each have separate config.json
+// files that they should be able to update with server state to assist with
+// performance optimizations.
+let config: any = {};
+try {
+  config = require("./config.json");
+} catch (e) {
+  console.error("run bootstrap to generate config.json");
+}
 
 interface AuthenticatedCeramicClient extends CeramicClient {
   did: DID;
 }
+
 if (!process.env.THREE_ID_SEED) {
   seed = randomBytes(32);
   fs.appendFileSync(
@@ -31,62 +45,78 @@ if (!process.env.THREE_ID_SEED) {
   );
 }
 
-async function authCeramic(): Promise<AuthenticatedCeramicClient> {
-  const ceramic = new CeramicClient(process.env.CERAMIC_API_URL);
+export class Ceramic implements Storage {
+  ceramic: CeramicClient | AuthenticatedCeramicClient;
+  idx: IDX;
 
-  const provider = new Ed25519Provider(seed);
-  const resolver = {
-    ...KeyDidResolver.getResolver(),
-    ...ThreeIdResolver.getResolver(ceramic),
-  };
-  ceramic.did = new DID({ resolver });
+  constructor(api?: string) {
+    this.ceramic = new CeramicClient(api || process.env.CERAMIC_API_URL);
+    this.idx = new IDX({ ceramic: this.ceramic, aliases: config.definitions });
+  }
+  async checkInit() {
+    if (!this.ceramic.did) await this.init();
+  }
 
-  const authCeramic: any = ceramic;
-  ceramic.did.setProvider(provider);
-  await ceramic.did.authenticate();
-  console.log("authenticated");
-  if (!ceramic.did) throw new Error("did not installed");
-  return authCeramic;
-}
+  async init() {
+    const provider = new Ed25519Provider(seed);
+    const resolver = {
+      ...KeyDidResolver.getResolver(),
+      ...ThreeIdResolver.getResolver(this.ceramic),
+    };
+    this.ceramic.did = new DID({ resolver });
 
-async function testCeramic() {
-  const ceramic = await authCeramic();
-  const doc = await TileDocument.create(
-    ceramic,
-    { foo: "bar" },
-    {
-      controllers: [ceramic.did.id],
-      family: "doc family",
-    }
-  );
-
-  const id = doc.id.toString();
-  const test = await TileDocument.load(ceramic, id);
-  console.log("should load doc: ", test.content);
-}
-
-async function initCeramic() {
-  const ceramic = await authCeramic();
-  // Convert eth address to did
-  const toDID = async (address: string): Promise<string> => {
-    const { did } = await Caip10Link.fromAccount(ceramic, `${address}@ip155:1`);
-    if (!did) throw new Error("no did");
+    this.ceramic.did.setProvider(provider);
+    await this.ceramic.did.authenticate();
+    return this;
+  }
+  // Derive DID from ethereum address
+  async toDID(address: string): Promise<string> {
+    await this.checkInit();
+    const { did } = await Caip10Link.fromAccount(
+      this.ceramic,
+      `${address}@ip155:1`
+    );
+    if (!did) throw new Error("no did linked to address");
     return did;
-  };
-}
+  }
 
-async function createIdx(): Promise<IDX> {
-  const ceramic = await authCeramic();
-  return new IDX({ ceramic });
-}
-testCeramic().catch((e) => console.log(e));
+  async setStateDocument(state: ConvictionState): Promise<ConvictionState> {
+    await this.checkInit();
+    await this.idx.set("convictionstate", state);
 
-export async function fetchConvictionDocID(address: string, idx: IDX) {
-  const did = await toDID(address);
-  if (!did) return;
-  return idx.getRecordID(config.definitions.convictions, did);
+    const result = await this.idx.get("convictionstate");
+    if (!result) throw new Error("Error setting state document");
+    return result as ConvictionState;
+  }
+
+  async fetchOrCreateStateDocument(): Promise<ConvictionState> {
+    await this.checkInit();
+    let state = await this.idx.get("convictionstate");
+    if (state == null) {
+      state = await this.setStateDocument({
+        context: config.erc20Contract,
+        supply: 0,
+        participants: [],
+        proposals: [],
+      });
+    }
+    console.log("new state", state);
+    return state as ConvictionState;
+  }
+
+  /**
+   * return a holder's convictions doc
+   */
+  async fetchConvictionDocID(address: string) {
+    const did = await this.toDID(address);
+    if (!did) return;
+    return this.idx.getRecordID(config.definitions.convictions, did);
+  }
 }
+const c = new Ceramic();
+
+c.init()
+  .then((c) => c.fetchOrCreateStateDocument())
+  .catch((e) => console.log(e));
+
 function fetchHolderDocuments() {}
-
-function fetchStateDocument() {}
-function setStateDocument() {}

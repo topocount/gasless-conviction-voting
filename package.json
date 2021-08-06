@@ -9,6 +9,7 @@
     "@tsconfig/node14": "^1.0.1",
     "@types/node": "^16.4.10",
     "@types/node-fetch": "^2.5.12",
+    "@typescript-eslint/parser": "^4.29.0",
     "debug": "^4.3.2",
     "dotenv": "^10.0.0",
     "ethers": "^5.4.3",
