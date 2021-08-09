@@ -1,8 +1,9 @@
 require("dotenv").config();
 const debug = require("debug");
-const holdersInfoLog = debug("info:holders");
-const holdersDebugLog = debug("debug:holders");
+const holdersInfoLog = debug("CVsdk:holders:info");
+const holdersDebugLog = debug("CVsdk:holders:debug");
 import { ethers } from "ethers";
+import { Provider, JsonRpcProvider } from "@ethersproject/providers";
 
 const { providers, Contract } = ethers;
 
@@ -11,16 +12,20 @@ const Erc20TransferAbi = [
   "function balanceOf(address owner) view returns (uint256)",
 ];
 
+// TODO: Add "To block" param to optimize the blockchain reads after initial
+// state is stored to ceramic
 type Config = {
-  // ethRPC: string;
-  // erc20Address: string;
+  provider: Provider;
+  erc20Address?: string;
   blockIncrement?: string;
   quietIntervalThreshold?: string;
 };
 
 type FormedConfig = {
+  erc20Address: string;
   blockIncrement: number;
   quietIntervalThreshold: number;
+  provider: Provider;
 };
 
 type HolderBalances = Map<string, ethers.BigNumber>;
@@ -29,10 +34,8 @@ type HolderSnapshot = {
   currentBlockNumber: number;
 };
 
-// TODO: Add "To block" param to optimize the blockchain reads after initial
-// state is stored to ceramic
 export async function fetchTokenHolders(
-  rawConfig: Config = {}
+  rawConfig: Config,
 ): Promise<HolderSnapshot> {
   const blockIncrement: number = rawConfig.blockIncrement
     ? parseInt(rawConfig.blockIncrement, 10)
@@ -41,40 +44,39 @@ export async function fetchTokenHolders(
     ? parseInt(rawConfig.quietIntervalThreshold, 10)
     : 2;
   // Error if these vars aren't set
-  // TODO: Move process.env reads to index.js
-  if (!process.env.ETH_RPC) {
-    throw new Error("No `ETH_RPC` param configured int .env");
-  }
+  // TODO: Move process.env reads to a config parsing file
+  const erc20Address = rawConfig.erc20Address || process.env.ERC20_ADDRESS;
 
-  if (!process.env.ERC20_ADDRESS) {
+  if (erc20Address == null) {
     throw new Error("No `ERC20_ADDRESS` param configured int .env");
   }
+
   const config: FormedConfig = {
+    erc20Address,
     blockIncrement,
     quietIntervalThreshold,
+    provider: rawConfig.provider,
   };
   holdersDebugLog(blockIncrement, quietIntervalThreshold);
   // Create Contract Instance to be queried
-  const provider = new providers.JsonRpcProvider(process.env.ETH_RPC);
-
-  const currentBlockNumber = await provider.getBlockNumber();
+  const currentBlockNumber = await config.provider.getBlockNumber();
   holdersDebugLog("current block number: ", currentBlockNumber);
   const tokenContract = new Contract(
-    process.env.ERC20_ADDRESS,
+    config.erc20Address,
     Erc20TransferAbi,
-    provider
+    config.provider,
   );
 
   const holders = await fetchHoldersFromTransferEvents(
     currentBlockNumber,
     tokenContract,
-    config
+    config,
   );
 
   const holderBalances = await getHolderBalances(
     holders,
     currentBlockNumber,
-    tokenContract
+    tokenContract,
   );
 
   holdersDebugLog("number of non-zero addresses: ", holderBalances.size);
@@ -84,7 +86,7 @@ export async function fetchTokenHolders(
 async function getHolderBalances(
   holders: Set<string>,
   blockNumber: number,
-  contract: ethers.Contract
+  contract: ethers.Contract,
 ): Promise<HolderBalances> {
   const holderBalances: HolderBalances = new Map();
   for (const holder of Array.from(holders)) {
@@ -99,7 +101,7 @@ async function getHolderBalances(
 async function fetchHoldersFromTransferEvents(
   currentBlockNumber: number,
   contract: ethers.Contract,
-  config: FormedConfig
+  config: FormedConfig,
 ): Promise<Set<string>> {
   // set up a filter that emits all transfer events
   const transferFilter = contract.filters.Transfer();
@@ -117,7 +119,7 @@ async function fetchHoldersFromTransferEvents(
     const newTransfers = await contract.queryFilter(
       transferFilter,
       block - config.blockIncrement > 0 ? block - config.blockIncrement : 0,
-      block
+      block,
     );
     for (const transfer of newTransfers) {
       const { args } = transfer;
@@ -139,7 +141,7 @@ async function fetchHoldersFromTransferEvents(
       holdersDebugLog(
         `No transfers in ${
           config.quietIntervalThreshold * config.blockIncrement
-        } blocks. breaking...`
+        } blocks. breaking...`,
       );
       break;
     }
@@ -147,7 +149,7 @@ async function fetchHoldersFromTransferEvents(
   return holders;
 }
 
-fetchTokenHolders().catch((e: Error) => {
-  console.error("holders error: ", e);
-  throw e;
-});
+// fetchTokenHolders().catch((e: Error) => {
+//  console.error("holders error: ", e);
+//  throw e;
+// });
