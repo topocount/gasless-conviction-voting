@@ -1,11 +1,10 @@
-// borrowed from carlbardhal
 require("dotenv").config();
-const { writeFile } = require("fs").promises;
+const {writeFile} = require("fs").promises;
 
 const Ceramic = require("@ceramicnetwork/http-client").default;
-const { createDefinition, publishSchema } = require("@ceramicstudio/idx-tools");
-const { Ed25519Provider } = require("key-did-provider-ed25519");
-const { DID } = require("dids");
+const {createDefinition, publishSchema} = require("@ceramicstudio/idx-tools");
+const {Ed25519Provider} = require("key-did-provider-ed25519");
+const {DID} = require("dids");
 const ThreeIdResolver = require("@ceramicnetwork/3id-did-resolver").default;
 const KeyDidResolver = require("key-did-resolver").default;
 const ConvictionStateSchema = require("./schemas/conviction-state.json");
@@ -30,7 +29,7 @@ async function run() {
   console.log("Bootstrapping schemas and definitions");
 
   const provider = new Ed25519Provider(
-    Uint8Array.from(SEED.split(",").map(Number.parseInt))
+    Uint8Array.from(SEED.split(",").map(Number.parseInt)),
   );
 
   const resolver = {
@@ -38,7 +37,7 @@ async function run() {
     ...ThreeIdResolver.getResolver(ceramic),
   };
 
-  ceramic.did = new DID({ resolver });
+  ceramic.did = new DID({resolver});
   ceramic.did.setProvider(provider);
   await ceramic.did.authenticate();
   console.log("Ceramic initialized", ceramic?.did?.id);
@@ -55,7 +54,7 @@ async function run() {
         console.log(
           "Schema published:",
           content.title,
-          schema.commitId.toUrl()
+          schema.commitId.toUrl(),
         );
 
         const def = await createDefinition(ceramic, {
@@ -74,8 +73,8 @@ async function run() {
           key: content.title,
           value: schema.commitId.toUrl(),
         };
-      }
-    )
+      },
+    ),
   );
 
   console.log("Writing config.json", config);

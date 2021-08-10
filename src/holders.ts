@@ -1,11 +1,13 @@
-require("dotenv").config();
-const debug = require("debug");
+import dotenv from "dotenv";
+import debug from "debug";
 const holdersInfoLog = debug("CVsdk:holders:info");
 const holdersDebugLog = debug("CVsdk:holders:debug");
-import { ethers } from "ethers";
-import { Provider, JsonRpcProvider } from "@ethersproject/providers";
+import {ethers} from "ethers";
+import {Provider} from "@ethersproject/providers";
 
-const { providers, Contract } = ethers;
+dotenv.config();
+
+const {Contract} = ethers;
 
 const Erc20TransferAbi = [
   "event Transfer(address indexed from, address indexed to, uint amount)",
@@ -80,7 +82,7 @@ export async function fetchTokenHolders(
   );
 
   holdersDebugLog("number of non-zero addresses: ", holderBalances.size);
-  return { holderBalances, currentBlockNumber };
+  return {holderBalances, currentBlockNumber};
 }
 
 async function getHolderBalances(
@@ -108,7 +110,7 @@ async function fetchHoldersFromTransferEvents(
 
   // initialize variables for loop
   let intervalsWithNoTransfers = 0;
-  let holders: Set<string> = new Set();
+  const holders: Set<string> = new Set();
   // loop from top of the blockchain and grab all addresses from transfer
   // events
   for (
@@ -122,7 +124,7 @@ async function fetchHoldersFromTransferEvents(
       block,
     );
     for (const transfer of newTransfers) {
-      const { args } = transfer;
+      const {args} = transfer;
       if (args) {
         if (args.from) holders.add(args.from);
         if (args.to) holders.add(args.to);
@@ -138,7 +140,7 @@ async function fetchHoldersFromTransferEvents(
     if (newTransfers.length === 0) intervalsWithNoTransfers++;
     else intervalsWithNoTransfers = 0;
     if (intervalsWithNoTransfers == config.quietIntervalThreshold) {
-      holdersDebugLog(
+      holdersInfoLog(
         `No transfers in ${
           config.quietIntervalThreshold * config.blockIncrement
         } blocks. breaking...`,

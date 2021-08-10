@@ -1,3 +1,5 @@
+import {Signer} from "@ethersproject/abstract-signer";
+
 export interface ConvictionState {
   context: string;
   participants: Participants[];
@@ -33,10 +35,19 @@ export interface ConvictionElement {
 
 export interface Proposal {
   amount: number;
+  blockHeight: number;
   beneficiary: string;
   context: string;
   currency: string;
   description?: string;
   title: string;
   url: string;
+}
+
+/**
+ * This interface exists in @ethersproject's codebase but
+ * it is not exported anywhere easily for consumption.
+ */
+export interface SignerWithAddress extends Signer {
+  address: string;
 }

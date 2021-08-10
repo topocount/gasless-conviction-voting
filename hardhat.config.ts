@@ -1,5 +1,5 @@
-import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
+// import { task } from "hardhat/config";
 
 export default {
   solidity: "0.8.4",

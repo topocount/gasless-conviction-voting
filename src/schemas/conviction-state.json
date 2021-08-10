@@ -9,6 +9,9 @@
     "supply": {
       "type": "number"
     },
+    "blockHeight": {
+      "type": "number"
+    },
     "participants": {
       "type": "array",
       "items": {
