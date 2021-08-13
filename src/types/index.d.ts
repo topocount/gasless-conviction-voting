@@ -1,48 +1,48 @@
 import {Signer} from "@ethersproject/abstract-signer";
 
-export interface ConvictionState {
+export type ConvictionState = {
   context: string;
+  blockHeight?: number;
   participants: Participants[];
-  proposals: Proposals[];
+  proposals: Proposals;
   supply: number;
-}
+};
 
-export interface Participants {
+export type Participants = {
   account: string;
   balance: number;
   convictions: string;
-}
+};
 
-export type Proposals = ProposalConvction[];
+export type Proposals = ProposalConviction[];
 
-export interface ProposalConviction {
-  proposal: string;
+export type ProposalConviction = {
+  proposal: string; // DID for the Proposal document
   totalConviction: number;
   triggered: boolean;
-}
+};
 
-export interface Convictions {
+export type Convictions = {
   context: string;
   convictions: ConvictionElement[];
   proposals: string[];
   supply?: number;
-}
+};
 
-export interface ConvictionElement {
+export type ConvictionElement = {
   allocation: number;
   proposal: string;
-}
+};
 
-export interface Proposal {
+export type Proposal = {
   amount: number;
-  blockHeight: number;
   beneficiary: string;
   context: string;
   currency: string;
   description?: string;
   title: string;
   url: string;
-}
+};
 
 /**
  * This interface exists in @ethersproject's codebase but

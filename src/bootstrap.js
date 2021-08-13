@@ -1,5 +1,6 @@
 require("dotenv").config();
-const {writeFile} = require("fs").promises;
+const {writeFile, appendFile} = require("fs").promises;
+const {randomBytes} = require("@stablelib/random");
 
 const Ceramic = require("@ceramicnetwork/http-client").default;
 const {createDefinition, publishSchema} = require("@ceramicstudio/idx-tools");
@@ -12,8 +13,16 @@ const ConvictionsSchema = require("./schemas/convictions.json");
 const ProposalSchema = require("./schemas/proposal.json");
 const getCaipFromErc20Address = require("./util");
 
-const SEED = process.env.THREE_ID_SEED;
-const CERAMIC_HOST = process.env.CERAMIC_API_URL;
+let SEED /*: string*/;
+if (!process.env.THREE_ID_SEED) {
+  SEED = randomBytes(32);
+  appendFile(
+    ".env",
+    `# 3ID_seed for use with Ceramic\nTHREE_ID_SEED=${SEED}\n`,
+  );
+}
+SEED = process.env.THREE_ID_SEED;
+const CERAMIC_HOST = process.argv[2] || process.env.CERAMIC_API_URL;
 const ADDRESS = process.env.ERC20_ADDRESS;
 
 const config = {
@@ -78,7 +87,7 @@ async function run() {
   );
 
   console.log("Writing config.json", config);
-  await writeFile("./src/config.json", JSON.stringify(config));
+  await writeFile("./src/config.json", JSON.stringify(config, null, 2));
 
   console.log("Config written to src/config.json file:", config);
   process.exit(0);
