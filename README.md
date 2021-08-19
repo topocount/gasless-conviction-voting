@@ -25,7 +25,7 @@ Core functionality of the SDK:
 1. Sync all holders from onchain transactions and the current block
 2. Get balances of all holders. Remove zero-balance holders
 
-- [ ] Pulling the conviction state document for the token.
+- [x] Pulling the conviction state document for the token.
 - [ ] Pulling the latest conviction documents from all holders.
 - [ ] Computing newest conviction scores using conviction docs and proposals
 - [ ] Updating the state doc with the latest state and trigger those that reach
