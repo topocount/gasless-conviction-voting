@@ -7,7 +7,7 @@
       "type": "string"
     },
     "supply": {
-      "type": "number"
+      "type": "string"
     },
     "proposals": {
       "type": "array",

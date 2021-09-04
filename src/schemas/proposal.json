@@ -13,7 +13,7 @@
       "type": "string"
     },
     "amount": {
-      "type": "number"
+      "type": "string"
     },
     "beneficiary": {
       "type": "string"

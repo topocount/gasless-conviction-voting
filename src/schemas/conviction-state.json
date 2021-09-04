@@ -7,7 +7,7 @@
       "type": "string"
     },
     "supply": {
-      "type": "number"
+      "type": "string"
     },
     "blockHeight": {
       "type": "number"
@@ -35,7 +35,7 @@
           "type": "string"
         },
         "balance": {
-          "type": "number"
+          "type": "string"
         },
         "convictions": {
           "type": "string",
@@ -52,7 +52,7 @@
           "maxLength": 150
         },
         "totalConviction": {
-          "type": "number"
+          "type": "string"
         },
         "triggered": {
           "type": "boolean"
