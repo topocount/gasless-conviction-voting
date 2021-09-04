@@ -2,13 +2,13 @@
   "did": "did:key:z6MktdyDwu9g5ehnQzUZ7yCPCoaYT9H2PJT15d5e48o4umd1",
   "erc20Contract": "eip155:1/0xfb5453340C03db5aDe474b27E68B6a9c6b2823Eb",
   "definitions": {
-    "convictions": "kjzl6cwe1jw1468d25cifi9kn902gz6k2x4hzc9siv856zq4npie6k3wy5pnolf",
-    "proposal": "kjzl6cwe1jw146vb8wlgikez7nnft72wjo5ibvmh6oex7w36nzqxbej3pj0gzaf",
-    "convictionstate": "kjzl6cwe1jw148m4yqt43xmh9fc5ivzh98jc7ow28458lpf9lwsebmqpdeyq5vg"
+    "convictionstate": "kjzl6cwe1jw14b65kq327g9euaxb9e97zpdigaouw86qnwy3ikb67c89x8cfkqv",
+    "proposal": "kjzl6cwe1jw1480eia249oxgkyny86d9i7onwlfst1hlmxbunkz99t0xfyz11ta",
+    "convictions": "kjzl6cwe1jw145hclq1bzw7w6afdelu2fha68q85d2ix02wo1l9vlevnkwc71x1"
   },
   "schemas": {
-    "Convictions": "ceramic://k3y52l7qbv1fryd8ujo2tyj8d8ipd41ji4i7la6x692r255r1sy30g4bi4nlmsvls",
-    "Proposal": "ceramic://k3y52l7qbv1fryev819csrxwakdnh6murwon7uapk4jksutlbqp8n3egnmhgl38cg",
-    "ConvictionState": "ceramic://k3y52l7qbv1fry72285kap8gl8x3sy0zml3rec4hfnssgshcl0p3dwrr3eqeeu6m8"
+    "ConvictionState": "ceramic://k3y52l7qbv1frxxlq66tm25otslnk7wxwi3o30yrtxo832w1i4axdja4mw3m47abk",
+    "Proposal": "ceramic://k3y52l7qbv1fryj8gdkv9f80oup0ehuetts5fl91etfyuad55qu0eirv4ouf6pa0w",
+    "Convictions": "ceramic://k3y52l7qbv1frxzw4h6vkqdg7x31b0741pcfn84dz3df6beff8q2d53o9k2k6cc1s"
   }
 }

@@ -4,21 +4,21 @@ export type ConvictionState = {
   context: string;
   blockHeight?: number;
   participants: Participants[];
-  proposals: Proposals;
-  supply: number;
+  proposals: ProposalConvictions;
+  supply: string;
 };
 
 export type Participants = {
   account: string;
-  balance: number;
+  balance: string;
   convictions: string;
 };
 
-export type Proposals = ProposalConviction[];
+export type ProposalConvictions = ProposalConviction[];
 
 export type ProposalConviction = {
   proposal: string; // DID for the Proposal document
-  totalConviction: number;
+  totalConviction: string;
   triggered: boolean;
 };
 
@@ -26,7 +26,6 @@ export type Convictions = {
   context: string;
   convictions: ConvictionElement[];
   proposals: string[];
-  supply?: number;
 };
 
 export type ConvictionElement = {
@@ -35,7 +34,7 @@ export type ConvictionElement = {
 };
 
 export type Proposal = {
-  amount: number;
+  amount: string;
   beneficiary: string;
   context: string;
   currency: string;

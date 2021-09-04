@@ -4,6 +4,7 @@ const holdersInfoLog = debug("CVsdk:holders:info");
 const holdersDebugLog = debug("CVsdk:holders:debug");
 import {ethers} from "ethers";
 import {Provider} from "@ethersproject/providers";
+import {BigNumber as BN} from "@ethersproject/bignumber";
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ const Erc20TransferAbi = [
 
 // TODO: Add "To block" param to optimize the blockchain reads after initial
 // state is stored to ceramic
-type Config = {
+export type Config = {
   provider: Provider;
   erc20Address?: string;
   blockIncrement?: string;
@@ -30,10 +31,15 @@ type FormedConfig = {
   provider: Provider;
 };
 
-type HolderBalances = Map<string, ethers.BigNumber>;
+export type HolderBalances = Map<string, string>;
+type HolderState = {
+  holderBalances: HolderBalances;
+  supply: string;
+};
 type HolderSnapshot = {
   holderBalances: HolderBalances;
   currentBlockNumber: number;
+  supply: string;
 };
 
 export async function fetchTokenHolders(
@@ -45,7 +51,7 @@ export async function fetchTokenHolders(
   const quietIntervalThreshold: number = rawConfig.quietIntervalThreshold
     ? parseInt(rawConfig.quietIntervalThreshold, 10)
     : 2;
-  // Error if these vars aren't set
+  // Error if the below vars aren't set
   // TODO: Move process.env reads to a config parsing file
   const erc20Address = rawConfig.erc20Address || process.env.ERC20_ADDRESS;
 
@@ -75,29 +81,33 @@ export async function fetchTokenHolders(
     config,
   );
 
-  const holderBalances = await getHolderBalances(
+  const {holderBalances, supply} = await getHolderBalances(
     holders,
     currentBlockNumber,
     tokenContract,
   );
 
   holdersDebugLog("number of non-zero addresses: ", holderBalances.size);
-  return {holderBalances, currentBlockNumber};
+  return {holderBalances, currentBlockNumber, supply};
 }
 
 async function getHolderBalances(
   holders: Set<string>,
   blockNumber: number,
   contract: ethers.Contract,
-): Promise<HolderBalances> {
+): Promise<HolderState> {
+  let supply = BN.from(0);
   const holderBalances: HolderBalances = new Map();
   for (const holder of Array.from(holders)) {
     const balance: ethers.BigNumber = await contract.balanceOf(holder, {
       blockTag: blockNumber, // for a consistent totalSupply
     });
-    if (!ethers.constants.Zero.eq(balance)) holderBalances.set(holder, balance);
+    if (!ethers.constants.Zero.eq(balance)) {
+      holderBalances.set(holder, balance.toString());
+      supply = supply.add(balance);
+    }
   }
-  return holderBalances;
+  return {holderBalances, supply: supply.toString()};
 }
 
 async function fetchHoldersFromTransferEvents(

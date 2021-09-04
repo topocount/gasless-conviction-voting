@@ -6,8 +6,14 @@ import KeyDidResolver from "key-did-resolver";
 import {DID} from "dids";
 import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
+import {TileDocument} from "@ceramicnetwork/stream-tile";
 
-import {ConvictionState, Convictions} from "./types";
+import {
+  ConvictionState,
+  Convictions,
+  Proposal,
+  ProposalConvictions,
+} from "./types";
 import {Storage} from "./types/storage.d";
 
 dotenv.config();
@@ -87,7 +93,7 @@ export class CeramicStorage implements Storage {
     if (state == null) {
       state = await this.setStateDocument({
         context: config.erc20Contract,
-        supply: 0,
+        supply: "0",
         blockHeight: 0,
         participants: [],
         proposals: [],
@@ -108,7 +114,7 @@ export class CeramicStorage implements Storage {
     }
     state.proposals.push({
       proposal: docId,
-      totalConviction: 0,
+      totalConviction: "0",
       triggered: false,
     });
     await this.setStateDocument(state);
@@ -117,29 +123,37 @@ export class CeramicStorage implements Storage {
   /**
    * return a holder's convictions doc
    */
-  async fetchConvictionDoc(address: string): Promise<Convictions | null> {
+  async fetchConvictionDoc(
+    address: string,
+  ): Promise<TileDocument<Convictions> | null> {
     const did = await this.toDID(address);
     if (did == null) return null;
-    return this.idx.get(config.definitions.convictions, did);
+    let convictions = null;
+    const index = await this.idx.getIndex(did);
+    if (index) {
+      convictions = await TileDocument.load<Convictions>(
+        this.ceramic,
+        index[config.definitions.convictions],
+      );
+      if (!convictions.content) return null;
+    }
+    return convictions;
   }
 
   async addProposals(address: string): Promise<this> {
     const doc = await this.fetchConvictionDoc(address);
     if (doc) {
-      for (const proposal of doc.proposals) {
+      for (const proposal of doc.content.proposals) {
         await this._addProposalToState(proposal);
       }
     }
     return this;
   }
+
+  async fetchProposal(docId: string): Promise<Proposal> {
+    const doc = await TileDocument.load(this.ceramic, docId);
+    if (!doc) throw new Error(`No doc matching docId: ${docId}`);
+
+    return doc.content;
+  }
 }
-
-/*
-const c = new Ceramic();
-
-c.init()
-  .then((c) => c.fetchOrCreateStateDocument())
-  .catch((e) => console.log(e));
-*/
-// TODO implement this to obtain convictions doc
-// function fetchHolderDocuments() {}
