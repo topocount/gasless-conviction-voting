@@ -1,6 +1,9 @@
 {
   "extends": "@tsconfig/node14/tsconfig.json",
-  "compilerOptions": {"esModuleInterop": true, "resolveJsonModule": true},
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
   "paths": {
     "*": ["node_modules/*", "src/types/*"]
   }

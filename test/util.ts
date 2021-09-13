@@ -11,11 +11,15 @@ import {DID} from "dids";
 import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
 import {randomBytes} from "@stablelib/random";
+import {Config} from "../src/bootstrap";
 
-import config from "../src/config.json";
+import rawConfig from "./config/ceramic.json";
 const URI = "http://127.0.0.1:7007";
 let ethProvider: any;
 let addresses: string[];
+
+// TODO: Write a ceramic config parser
+const config = rawConfig as Config;
 
 export function encodeRpcMessage(method: string, params?: string[]): any {
   return {
@@ -41,7 +45,7 @@ const send = (provider: any, data: any): Promise<any> =>
   );
 
 export const emptyState = {
-  context: "eip155:1/0xfb5453340C03db5aDe474b27E68B6a9c6b2823Eb",
+  context: "eip155:1:0xfb5453340C03db5aDe474b27E68B6a9c6b2823Eb",
   supply: "0",
   blockHeight: 0,
   participants: [],
@@ -115,11 +119,13 @@ export async function setEthCeramicProvider(): Promise<{
     const result = sigUtils.personalSign(account.secretKey, {data});
     callback(null, result);
   };
+  console.log("test before reset");
   await resetState();
+  console.log("test after reset");
   return {createMockHolderAndProposal, addresses, ceramicStorage, resetState};
 }
 
-const ceramicStorage = new CeramicStorage(GANACHE_CHAIN_ID, URI);
+const ceramicStorage = new CeramicStorage(GANACHE_CHAIN_ID, config, URI);
 
 async function resetState() {
   await ceramicStorage.setStateDocument(emptyState);

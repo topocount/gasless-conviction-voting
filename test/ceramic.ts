@@ -1,8 +1,9 @@
 import chai from "chai";
+import dotenv from "dotenv";
 
 import {CeramicStorage} from "../src/ceramic";
 import {setEthCeramicProvider, emptyState} from "./util";
-
+dotenv.config({path: "./.env.test"});
 const {expect} = chai;
 
 let ceramicStorage: CeramicStorage;
@@ -15,6 +16,7 @@ describe("src/ceramic.ts", () => {
       ceramicStorage: storage,
       addresses: ethAddresses,
     } = await setEthCeramicProvider();
+    console.log("test");
     addresses = ethAddresses;
     ceramicStorage = storage;
     await createMockHolderAndProposal(0);

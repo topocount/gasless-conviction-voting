@@ -1,4 +1,3 @@
-import dotenv from "dotenv";
 import CeramicClient from "@ceramicnetwork/http-client";
 import {Ed25519Provider} from "key-did-provider-ed25519";
 import ThreeIdResolver from "@ceramicnetwork/3id-did-resolver";
@@ -7,29 +6,12 @@ import {DID} from "dids";
 import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
 import {TileDocument} from "@ceramicnetwork/stream-tile";
+import {Config} from "./bootstrap";
 
-import {
-  ConvictionState,
-  Convictions,
-  Proposal,
-  ProposalConvictions,
-} from "./types";
+import {ConvictionState, Convictions, Proposal} from "./types";
 import {Storage} from "./types/storage.d";
 
-dotenv.config();
 let seed: Uint8Array;
-
-// TODO: Create config type
-// TODO: separate configs into a more resilient, self-sustaining structure
-// Ceramic and the holders fetchers should each have separate config.json
-// files that they should be able to update with server state to assist with
-// performance optimizations.
-let config: any = {};
-try {
-  config = require("./config.json");
-} catch (e) {
-  console.error("run bootstrap to generate config.json");
-}
 
 interface AuthenticatedCeramicClient extends CeramicClient {
   did: DID;
@@ -39,17 +21,21 @@ if (process.env.THREE_ID_SEED) {
   seed = Uint8Array.from(
     process.env.THREE_ID_SEED.split(",").map(Number.parseInt),
   );
+} else {
+  throw new Error("Please execute the bootstrap.ts file before proceeding");
 }
 
 export class CeramicStorage implements Storage {
   ceramic: CeramicClient | AuthenticatedCeramicClient;
   idx: IDX;
   chainId: string;
+  config: Config;
 
-  constructor(chainId: string, api?: string) {
+  constructor(chainId: string, config: Config, api?: string) {
     this.chainId = chainId;
     this.ceramic = new CeramicClient(api || process.env.CERAMIC_API_URL);
     this.idx = new IDX({ceramic: this.ceramic, aliases: config.definitions});
+    this.config = config;
   }
 
   async checkInit(): Promise<void> {
@@ -92,7 +78,7 @@ export class CeramicStorage implements Storage {
     let state = await this.idx.get("convictionstate");
     if (state == null) {
       state = await this.setStateDocument({
-        context: config.erc20Contract,
+        context: this.config.erc20Contract,
         supply: "0",
         blockHeight: 0,
         participants: [],
@@ -133,7 +119,7 @@ export class CeramicStorage implements Storage {
     if (index) {
       convictions = await TileDocument.load<Convictions>(
         this.ceramic,
-        index[config.definitions.convictions],
+        index[this.config.definitions.convictions],
       );
       if (!convictions.content) return null;
     }

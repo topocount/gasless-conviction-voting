@@ -2,13 +2,13 @@
   "name": "gasless-conviction-sdk",
   "version": "0.0.0",
   "description": "A service that periodically calculates conviction using the Ethereum blockchain and Ceramic",
-  "main": "index.js",
   "author": "Kevin Siegler <17910833+topocount@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
-    "prettify": "yarn prettier -w '**/*.{ts,js,md,yml,json}'",
-    "check-pretty": "yarn prettier -c '**/*.{ts,js,md,yml,json}'",
-    "lint": "eslint ."
+    "prettify": "npx prettier -w '**/*.{ts,js,md,yml,json}'",
+    "check-pretty": "npx prettier -c '**/*.{ts,js,md,yml,json}'",
+    "lint": "eslint .",
+    "test": "./scripts/test.sh"
   },
   "devDependencies": {
     "@ceramicnetwork/cli": "^1.2.1",
@@ -19,6 +19,7 @@
     "@types/debug": "^4.1.7",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.4.13",
+    "@types/node-cron": "^2.0.4",
     "@types/node-fetch": "^2.5.12",
     "@typescript-eslint/eslint-plugin": "^4.29.0",
     "@typescript-eslint/parser": "^4.29.0",
@@ -49,6 +50,8 @@
     "dotenv": "^10.0.0",
     "hardhat": "^2.6.0",
     "key-did-provider-ed25519": "^1.1.0",
-    "node-fetch": "^2.6.1"
+    "node-cron": "^3.0.0",
+    "node-fetch": "^2.6.1",
+    "wait-on": "^6.0.0"
   }
 }

@@ -18,6 +18,9 @@ dotenv.config();
 
 type Config = {
   holdersConfig: HoldersConfig;
+  alpha: number;
+  beta: number;
+  rho: number;
 };
 
 type ParticipantConviction = {
@@ -44,10 +47,14 @@ export class Snapshot {
   storage: Storage;
   config: Config;
   ALPHA: number;
-  constructor(storage: Storage, config: Config, alpha = 0.9) {
+  BETA: number;
+  RHO: number;
+  constructor(storage: Storage, config: Config) {
     this.storage = storage;
     this.config = config;
-    this.ALPHA = alpha;
+    this.ALPHA = config.alpha ?? 0.9;
+    this.BETA = config.beta ?? 0.2;
+    this.RHO = config.rho ?? 0.0005;
   }
 
   async updateSnapshot(): Promise<void> {
@@ -119,9 +126,8 @@ export class Snapshot {
         supply: new BN(supply),
         alpha: this.ALPHA,
         params: {
-          // TODO: Make configurable
-          beta: 0.2,
-          rho: 0.0005,
+          beta: this.BETA,
+          rho: this.RHO,
         },
       });
 
