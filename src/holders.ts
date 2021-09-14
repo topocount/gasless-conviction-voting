@@ -1,12 +1,9 @@
-import dotenv from "dotenv";
 import debug from "debug";
 const holdersInfoLog = debug("CVsdk:holders:info");
 const holdersDebugLog = debug("CVsdk:holders:debug");
 import {ethers} from "ethers";
 import {Provider} from "@ethersproject/providers";
 import {BigNumber as BN} from "@ethersproject/bignumber";
-
-dotenv.config();
 
 const {Contract} = ethers;
 
@@ -19,7 +16,7 @@ const Erc20TransferAbi = [
 // state is stored to ceramic
 export type Config = {
   provider: Provider;
-  erc20Address?: string;
+  erc20Address: string;
   blockIncrement?: string;
   quietIntervalThreshold?: string;
 };
@@ -52,8 +49,7 @@ export async function fetchTokenHolders(
     ? parseInt(rawConfig.quietIntervalThreshold, 10)
     : 2;
   // Error if the below vars aren't set
-  // TODO: Move process.env reads to a config parsing file
-  const erc20Address = rawConfig.erc20Address || process.env.ERC20_ADDRESS;
+  const erc20Address = rawConfig.erc20Address;
 
   if (erc20Address == null) {
     throw new Error("No `ERC20_ADDRESS` param configured int .env");

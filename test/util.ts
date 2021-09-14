@@ -11,15 +11,13 @@ import {DID} from "dids";
 import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
 import {randomBytes} from "@stablelib/random";
-import {Config} from "../src/bootstrap";
+import {checkEnvironment, getCeramicAppConfig} from "../src/config";
 
-import rawConfig from "./config/ceramic.json";
+const env = checkEnvironment("test/.env.test");
+
 const URI = "http://127.0.0.1:7007";
 let ethProvider: any;
 let addresses: string[];
-
-// TODO: Write a ceramic config parser
-const config = rawConfig as Config;
 
 export function encodeRpcMessage(method: string, params?: string[]): any {
   return {
@@ -52,61 +50,61 @@ export const emptyState = {
   proposals: [],
 };
 
-async function createMockHolderAndProposal(
-  addressIndex: number,
-  amount = 100,
-): Promise<void> {
-  const ceramic = new CeramicClient(URI);
-  const idx = new IDX({ceramic, aliases: config.definitions});
-
-  const seed = randomBytes(32);
-
-  const ceramicProvider = new Ed25519Provider(seed);
-  const resolver = {
-    ...KeyDidResolver.getResolver(),
-    ...ThreeIdResolver.getResolver(ceramic),
-  };
-  ceramic.did = new DID({resolver});
-
-  ceramic.did.setProvider(ceramicProvider);
-  await ceramic.did.authenticate();
-
-  // This fails because the personal_sign JSON-RPC endpoing doesn't
-  // exist in Hardhat or hardhat or truffle
-  const ethAuthProvider = new EthereumAuthProvider(
-    ethProvider,
-    addresses[addressIndex],
-  );
-
-  const accountId = await ethAuthProvider.accountId();
-
-  const accountLink = await Caip10Link.fromAccount(ceramic, accountId);
-
-  await accountLink.setDid(ceramic.did.id, ethAuthProvider);
-
-  const proposalRecordId = await idx.set("proposal", {
-    amount: amount.toString(),
-    beneficiary: "me",
-    context: "should be CAIP10 id",
-    currency: "another CAIP10 id",
-    description: "I deserve the monies",
-    title: "my awesome proposal",
-    url: "https://goodUrl.info",
-  });
-
-  await idx.set("convictions", {
-    context: "should be CAIP10 id",
-    proposals: [proposalRecordId.toString()],
-    convictions: [{allocation: 0.5, proposal: proposalRecordId.toString()}],
-  });
-}
-
 export async function setEthCeramicProvider(): Promise<{
   createMockHolderAndProposal: (arg0: number) => Promise<void>;
   addresses: string[];
   ceramicStorage: CeramicStorage;
   resetState: () => Promise<void>;
 }> {
+  async function createMockHolderAndProposal(
+    addressIndex: number,
+    amount = 100,
+  ): Promise<void> {
+    const ceramic = new CeramicClient(URI);
+    const idx = new IDX({ceramic, aliases: config.ceramic.definitions});
+
+    const seed = randomBytes(32);
+
+    const ceramicProvider = new Ed25519Provider(seed);
+    const resolver = {
+      ...KeyDidResolver.getResolver(),
+      ...ThreeIdResolver.getResolver(ceramic),
+    };
+    ceramic.did = new DID({resolver});
+
+    ceramic.did.setProvider(ceramicProvider);
+    await ceramic.did.authenticate();
+
+    // This fails because the personal_sign JSON-RPC endpoing doesn't
+    // exist in Hardhat or hardhat or truffle
+    const ethAuthProvider = new EthereumAuthProvider(
+      ethProvider,
+      addresses[addressIndex],
+    );
+
+    const accountId = await ethAuthProvider.accountId();
+
+    const accountLink = await Caip10Link.fromAccount(ceramic, accountId);
+
+    await accountLink.setDid(ceramic.did.id, ethAuthProvider);
+
+    const proposalRecordId = await idx.set("proposal", {
+      amount: amount.toString(),
+      beneficiary: "me",
+      context: "should be CAIP10 id",
+      currency: "another CAIP10 id",
+      description: "I deserve the monies",
+      title: "my awesome proposal",
+      url: "https://goodUrl.info",
+    });
+
+    await idx.set("convictions", {
+      context: "should be CAIP10 id",
+      proposals: [proposalRecordId.toString()],
+      convictions: [{allocation: 0.5, proposal: proposalRecordId.toString()}],
+    });
+  }
+
   ethProvider = ganache.provider(GANACHE_CONF);
   addresses = await send(ethProvider, encodeRpcMessage("eth_accounts"));
 
@@ -119,14 +117,16 @@ export async function setEthCeramicProvider(): Promise<{
     const result = sigUtils.personalSign(account.secretKey, {data});
     callback(null, result);
   };
-  console.log("test before reset");
+  const ceramicConfig = await getCeramicAppConfig(env);
+  const config = {
+    environment: env,
+    ceramic: ceramicConfig,
+  };
+  const ceramicStorage = new CeramicStorage(GANACHE_CHAIN_ID, config, URI);
+
+  async function resetState() {
+    await ceramicStorage.setStateDocument(emptyState);
+  }
   await resetState();
-  console.log("test after reset");
   return {createMockHolderAndProposal, addresses, ceramicStorage, resetState};
-}
-
-const ceramicStorage = new CeramicStorage(GANACHE_CHAIN_ID, config, URI);
-
-async function resetState() {
-  await ceramicStorage.setStateDocument(emptyState);
 }

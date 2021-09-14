@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 import {promises} from "fs";
-import {randomBytes} from "@stablelib/random";
 
 import Ceramic from "@ceramicnetwork/http-client";
 import {createDefinition, publishSchema} from "@ceramicstudio/idx-tools";
@@ -11,9 +10,8 @@ import KeyDidResolver from "key-did-resolver";
 import ConvictionStateSchema from "./schemas/conviction-state.json";
 import ConvictionsSchema from "./schemas/convictions.json";
 import ProposalSchema from "./schemas/proposal.json";
+import {Environment} from "./config";
 import {getCaipFromErc20Address} from "./util";
-
-dotenv.config();
 
 export type Config = {
   did: string;
@@ -22,43 +20,32 @@ export type Config = {
   definitions?: any;
 };
 
-const {writeFile, appendFile} = promises;
-let SEED: string;
-if (!process.env.THREE_ID_SEED) {
-  const newSeed = randomBytes(32);
-  appendFile(
-    ".env",
-    `# 3ID_seed for use with Ceramic\nTHREE_ID_SEED=${newSeed}\n`,
-  );
-  SEED = newSeed.join();
-} else {
-  SEED = process.env.THREE_ID_SEED;
-}
-const CERAMIC_HOST = process.argv[2] || process.env.CERAMIC_API_URL;
-if (!process.env.ERC20_ADDRESS)
-  throw new Error(
-    "Please set an ERC20_ADDRESS with a `0x` prefix in your .env file",
-  );
-if (!process.env.CHAIN_ID)
-  throw new Error("Please add a numeric CHAIN_ID to .env");
-const ADDRESS: string = process.env.ERC20_ADDRESS;
-const CHAIN_ID: string = process.env.CHAIN_ID;
-
-const config: Config = {
-  did: "",
-  erc20Contract: getCaipFromErc20Address(ADDRESS, CHAIN_ID),
-  schemas: {},
-  definitions: {},
-};
-
-const ceramic = new Ceramic(CERAMIC_HOST);
-
-export async function run(path: string): Promise<Config> {
+const {writeFile} = promises;
+export async function run(
+  path: string,
+  environment: Environment,
+): Promise<Config> {
   console.log("Bootstrapping schemas and definitions");
 
-  const provider = new Ed25519Provider(
-    Uint8Array.from(SEED.split(",").map(Number.parseInt)),
-  );
+  const url_arg = process.argv[1].endsWith("bootstrap.ts")
+    ? process.argv[2]
+    : null;
+  const {chainId, threeIdSeed, ceramicApiUrl, holder} = environment;
+
+  const {erc20Address} = holder;
+
+  const ceramicHost = url_arg || ceramicApiUrl;
+
+  const config: Config = {
+    did: "",
+    erc20Contract: getCaipFromErc20Address(erc20Address, chainId),
+    schemas: {},
+    definitions: {},
+  };
+
+  const ceramic = new Ceramic(ceramicHost);
+
+  const provider = new Ed25519Provider(threeIdSeed);
 
   const resolver = {
     ...KeyDidResolver.getResolver(),

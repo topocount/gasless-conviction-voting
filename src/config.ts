@@ -1,21 +1,23 @@
 import dotenv from "dotenv";
 import {run, Config as CeramicConfig} from "./bootstrap";
 import {Config as HoldersConfig} from "./holders";
-import {readFileSync} from "fs";
+import {readFileSync, promises} from "fs";
 import {join as pathJoin} from "path";
 import {mkdirx, getAlpha} from "./util";
 import {ethers} from "ethers";
+import {randomBytes} from "@stablelib/random";
 
 const {providers} = ethers;
+const {appendFile} = promises;
 
 const DEFAULT_CONFIG_PATH = "config";
 const CERAMIC_FILE_NAME = "ceramic.json";
 
 const notFound = (e: any): boolean => e.code === "ENOENT";
 
-type Environment = {
+export type Environment = {
   chainId: string;
-  threeIdSeed: string;
+  threeIdSeed: Uint8Array;
   ceramicApiUrl: string;
   holder: HoldersConfig;
   alpha: number;
@@ -24,12 +26,13 @@ type Environment = {
   interval: number;
 };
 
-type Config = {
+export type Config = {
   ceramic: CeramicConfig;
   environment: Environment;
 };
 
 export async function getCeramicAppConfig(
+  env: Environment,
   path = DEFAULT_CONFIG_PATH,
 ): Promise<CeramicConfig> {
   mkdirx(path);
@@ -39,14 +42,14 @@ export async function getCeramicAppConfig(
     config = JSON.parse(readFileSync(filePath, {encoding: "utf8"}));
   } catch (e) {
     if (notFound(e)) {
-      config = await run(filePath);
+      config = await run(filePath, env);
     } else throw e;
   }
   return config;
 }
 
-function checkEnvironment(path = ".env"): Environment {
-  dotenv.config({path});
+export function checkEnvironment(pathToDotEnv = ".env"): Environment {
+  dotenv.config({path: pathToDotEnv});
   const {
     ETH_RPC,
     BLOCK_INCREMENT,
@@ -64,10 +67,6 @@ function checkEnvironment(path = ".env"): Environment {
 
   if (!ETH_RPC) throw new Error("Please set an ETH_RPC url in your .env file");
   if (!CERAMIC_API_URL) throw new Error("Please set a CERAMIC_API_URL in .env");
-  if (!THREE_ID_SEED)
-    throw new Error(
-      "Missing 3ID seed for server. Has the project been bootstrapped?",
-    );
   if (!ERC20_ADDRESS)
     throw new Error(
       "Please set an ERC20_ADDRESS with a `0x` prefix in your .env file",
@@ -77,11 +76,22 @@ function checkEnvironment(path = ".env"): Environment {
   const ethRpc = ETH_RPC;
   const blockIncrement = BLOCK_INCREMENT;
   const quietIntervalThreshold = QUIET_INTERVAL_THRESHOLD;
-  const threeIdSeed = THREE_ID_SEED;
   const ceramicApiUrl = CERAMIC_API_URL;
   const chainId = CHAIN_ID;
   const erc20Address = ERC20_ADDRESS;
 
+  let threeIdSeed = null;
+  if (!THREE_ID_SEED) {
+    threeIdSeed = randomBytes(32);
+    appendFile(
+      ".env",
+      `# 3ID_seed for use with Ceramic\nTHREE_ID_SEED=${threeIdSeed}\n`,
+    );
+  } else {
+    threeIdSeed = Uint8Array.from(
+      THREE_ID_SEED.split(",").map(Number.parseInt),
+    );
+  }
   let alpha = null;
   if (ALPHA) {
     alpha = Number.parseInt(ALPHA);
@@ -124,8 +134,8 @@ function checkEnvironment(path = ".env"): Environment {
 }
 
 export async function checkConfig(): Promise<Config> {
-  const ceramicConfig = await getCeramicAppConfig();
   const environmentConfig = checkEnvironment();
+  const ceramicConfig = await getCeramicAppConfig(environmentConfig);
 
   return {
     ceramic: ceramicConfig,

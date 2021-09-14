@@ -7,11 +7,7 @@ async function main(): Promise<void> {
 
   const {chainId, ceramicApiUrl, holder, alpha, beta, rho, interval} =
     config.environment;
-  const ceramicStorage = new CeramicStorage(
-    chainId,
-    config.ceramic,
-    ceramicApiUrl,
-  );
+  const ceramicStorage = new CeramicStorage(chainId, config, ceramicApiUrl);
 
   const snapshotConfig = {
     holdersConfig: holder,

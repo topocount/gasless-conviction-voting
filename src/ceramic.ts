@@ -6,23 +6,13 @@ import {DID} from "dids";
 import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
 import {TileDocument} from "@ceramicnetwork/stream-tile";
-import {Config} from "./bootstrap";
+import {Config} from "./config";
 
 import {ConvictionState, Convictions, Proposal} from "./types";
 import {Storage} from "./types/storage.d";
 
-let seed: Uint8Array;
-
 interface AuthenticatedCeramicClient extends CeramicClient {
   did: DID;
-}
-
-if (process.env.THREE_ID_SEED) {
-  seed = Uint8Array.from(
-    process.env.THREE_ID_SEED.split(",").map(Number.parseInt),
-  );
-} else {
-  throw new Error("Please execute the bootstrap.ts file before proceeding");
 }
 
 export class CeramicStorage implements Storage {
@@ -33,8 +23,11 @@ export class CeramicStorage implements Storage {
 
   constructor(chainId: string, config: Config, api?: string) {
     this.chainId = chainId;
-    this.ceramic = new CeramicClient(api || process.env.CERAMIC_API_URL);
-    this.idx = new IDX({ceramic: this.ceramic, aliases: config.definitions});
+    this.ceramic = new CeramicClient(api || config.environment.ceramicApiUrl);
+    this.idx = new IDX({
+      ceramic: this.ceramic,
+      aliases: config.ceramic.definitions,
+    });
     this.config = config;
   }
 
@@ -43,7 +36,7 @@ export class CeramicStorage implements Storage {
   }
 
   async init(): Promise<this> {
-    const provider = new Ed25519Provider(seed);
+    const provider = new Ed25519Provider(this.config.environment.threeIdSeed);
     const resolver = {
       ...KeyDidResolver.getResolver(),
       ...ThreeIdResolver.getResolver(this.ceramic),
@@ -78,7 +71,7 @@ export class CeramicStorage implements Storage {
     let state = await this.idx.get("convictionstate");
     if (state == null) {
       state = await this.setStateDocument({
-        context: this.config.erc20Contract,
+        context: this.config.ceramic.erc20Contract,
         supply: "0",
         blockHeight: 0,
         participants: [],
@@ -119,7 +112,7 @@ export class CeramicStorage implements Storage {
     if (index) {
       convictions = await TileDocument.load<Convictions>(
         this.ceramic,
-        index[this.config.definitions.convictions],
+        index[this.config.ceramic.definitions.convictions],
       );
       if (!convictions.content) return null;
     }
@@ -129,6 +122,7 @@ export class CeramicStorage implements Storage {
   async addProposals(address: string): Promise<this> {
     const doc = await this.fetchConvictionDoc(address);
     if (doc) {
+      console.log(doc.content);
       for (const proposal of doc.content.proposals) {
         await this._addProposalToState(proposal);
       }

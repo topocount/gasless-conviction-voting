@@ -1,9 +1,8 @@
 import chai from "chai";
-import dotenv from "dotenv";
 
 import {CeramicStorage} from "../src/ceramic";
 import {setEthCeramicProvider, emptyState} from "./util";
-dotenv.config({path: "./.env.test"});
+
 const {expect} = chai;
 
 let ceramicStorage: CeramicStorage;
