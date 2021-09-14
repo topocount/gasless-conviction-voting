@@ -13,6 +13,9 @@ const {appendFile} = promises;
 const DEFAULT_CONFIG_PATH = "config";
 const CERAMIC_FILE_NAME = "ceramic.json";
 
+const RHO_DEFAULT = 1;
+const BLOCK_INCREMENT_DEFAULT = 50000;
+
 const notFound = (e: any): boolean => e.code === "ENOENT";
 
 export type Environment = {
@@ -51,18 +54,18 @@ export async function getCeramicAppConfig(
 export function checkEnvironment(pathToDotEnv = ".env"): Environment {
   dotenv.config({path: pathToDotEnv});
   const {
-    ETH_RPC,
-    BLOCK_INCREMENT,
-    QUIET_INTERVAL_THRESHOLD,
-    THREE_ID_SEED,
-    CERAMIC_API_URL,
-    ERC20_ADDRESS,
-    CHAIN_ID,
-    SNAPSHOT_INTERVAL_HOURS,
-    HALF_LIFE_DAYS,
     ALPHA,
+    BLOCK_INCREMENT,
+    CERAMIC_API_URL,
+    CHAIN_ID,
+    ERC20_ADDRESS,
+    ETH_RPC,
+    HALF_LIFE_DAYS,
     MAX_FUND_PROPORTION,
     RHO,
+    SNAPSHOT_INTERVAL_HOURS,
+    START_BLOCK,
+    THREE_ID_SEED,
   } = process.env;
 
   if (!ETH_RPC) throw new Error("Please set an ETH_RPC url in your .env file");
@@ -73,9 +76,14 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
     );
   if (!CHAIN_ID) throw new Error("Please add a numeric CHAIN_ID to .env");
 
+  const startBlock = START_BLOCK ? Number.parseInt(START_BLOCK) : 0;
+
   const ethRpc = ETH_RPC;
-  const blockIncrement = BLOCK_INCREMENT;
-  const quietIntervalThreshold = QUIET_INTERVAL_THRESHOLD;
+
+  const blockIncrement: number = BLOCK_INCREMENT
+    ? Number.parseInt(BLOCK_INCREMENT)
+    : BLOCK_INCREMENT_DEFAULT;
+
   const ceramicApiUrl = CERAMIC_API_URL;
   const chainId = CHAIN_ID;
   const erc20Address = ERC20_ADDRESS;
@@ -112,14 +120,14 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
 
   const beta = Number.parseInt(MAX_FUND_PROPORTION);
 
-  let rho = 1;
+  let rho = RHO_DEFAULT;
   if (RHO) rho = Number.parseInt(RHO);
 
   const holder = {
     provider: new providers.JsonRpcProvider(ethRpc),
     erc20Address,
     blockIncrement,
-    quietIntervalThreshold,
+    startBlock,
   };
   return {
     threeIdSeed,

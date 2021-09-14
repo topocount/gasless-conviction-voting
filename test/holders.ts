@@ -4,6 +4,7 @@ import chai from "chai";
 import {solidity} from "ethereum-waffle";
 
 import {fetchTokenHolders, Config as HoldersConfig} from "../src/holders";
+import {checkEnvironment} from "../src/config";
 import {SignerWithAddress} from "../src/types";
 
 chai.use(solidity);
@@ -27,7 +28,9 @@ describe("fetchTokenHolders", () => {
     accounts = await ethers.getSigners();
     Token = await TokenFactory.deploy("test", "TEST");
 
+    const {holder} = checkEnvironment("test/.env.test");
     config = {
+      ...holder,
       provider: ethers.provider,
       erc20Address: Token.address,
     };

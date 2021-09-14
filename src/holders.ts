@@ -17,15 +17,8 @@ const Erc20TransferAbi = [
 export type Config = {
   provider: Provider;
   erc20Address: string;
-  blockIncrement?: string;
-  quietIntervalThreshold?: string;
-};
-
-type FormedConfig = {
-  erc20Address: string;
   blockIncrement: number;
-  quietIntervalThreshold: number;
-  provider: Provider;
+  startBlock: number;
 };
 
 export type HolderBalances = Map<string, string>;
@@ -40,36 +33,20 @@ type HolderSnapshot = {
 };
 
 export async function fetchTokenHolders(
-  rawConfig: Config,
+  config: Config,
 ): Promise<HolderSnapshot> {
-  const blockIncrement: number = rawConfig.blockIncrement
-    ? parseInt(rawConfig.blockIncrement, 10)
-    : 50000;
-  const quietIntervalThreshold: number = rawConfig.quietIntervalThreshold
-    ? parseInt(rawConfig.quietIntervalThreshold, 10)
-    : 2;
-  // Error if the below vars aren't set
-  const erc20Address = rawConfig.erc20Address;
-
-  if (erc20Address == null) {
-    throw new Error("No `ERC20_ADDRESS` param configured int .env");
-  }
-
-  const config: FormedConfig = {
-    erc20Address,
+  const {erc20Address, blockIncrement, startBlock, provider} = config;
+  holdersInfoLog("Start: Getting Token Holders");
+  holdersDebugLog(
+    "\nincrement: ",
     blockIncrement,
-    quietIntervalThreshold,
-    provider: rawConfig.provider,
-  };
-  holdersDebugLog(blockIncrement, quietIntervalThreshold);
-  // Create Contract Instance to be queried
-  const currentBlockNumber = await config.provider.getBlockNumber();
-  holdersDebugLog("current block number: ", currentBlockNumber);
-  const tokenContract = new Contract(
-    config.erc20Address,
-    Erc20TransferAbi,
-    config.provider,
+    "\nstart block:",
+    startBlock,
   );
+  // Create Contract Instance to be queried
+  const currentBlockNumber = await provider.getBlockNumber();
+  holdersDebugLog("current block number: ", currentBlockNumber);
+  const tokenContract = new Contract(erc20Address, Erc20TransferAbi, provider);
 
   const holders = await fetchHoldersFromTransferEvents(
     currentBlockNumber,
@@ -84,6 +61,8 @@ export async function fetchTokenHolders(
   );
 
   holdersDebugLog("number of non-zero addresses: ", holderBalances.size);
+
+  holdersInfoLog("Finish: Getting Token Holders");
   return {holderBalances, currentBlockNumber, supply};
 }
 
@@ -109,19 +88,18 @@ async function getHolderBalances(
 async function fetchHoldersFromTransferEvents(
   currentBlockNumber: number,
   contract: ethers.Contract,
-  config: FormedConfig,
+  config: Config,
 ): Promise<Set<string>> {
   // set up a filter that emits all transfer events
   const transferFilter = contract.filters.Transfer();
 
   // initialize variables for loop
-  let intervalsWithNoTransfers = 0;
   const holders: Set<string> = new Set();
   // loop from top of the blockchain and grab all addresses from transfer
   // events
   for (
     let block = currentBlockNumber;
-    block > 0;
+    block > config.startBlock;
     block -= config.blockIncrement
   ) {
     const newTransfers = await contract.queryFilter(
@@ -136,23 +114,9 @@ async function fetchHoldersFromTransferEvents(
         if (args.to) holders.add(args.to);
       }
     }
-    // TODO: Set up debug flag to make these quiet
     holdersDebugLog("token holders: ", holders.size);
     holdersDebugLog(`through block ${block - config.blockIncrement}`);
     holdersDebugLog((currentBlockNumber - block) / currentBlockNumber, "%");
-
-    // if there are no transfers over the configured quantity of consecutive
-    // blockIncrements, the query terminates
-    if (newTransfers.length === 0) intervalsWithNoTransfers++;
-    else intervalsWithNoTransfers = 0;
-    if (intervalsWithNoTransfers == config.quietIntervalThreshold) {
-      holdersInfoLog(
-        `No transfers in ${
-          config.quietIntervalThreshold * config.blockIncrement
-        } blocks. breaking...`,
-      );
-      break;
-    }
   }
   return holders;
 }

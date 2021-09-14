@@ -10,6 +10,7 @@ import {setEthCeramicProvider} from "./util";
 
 import {Storage} from "../src/types/storage.d";
 import {Snapshot} from "../src/snapshot";
+import {checkEnvironment} from "../src/config";
 
 chai.use(solidity);
 const {expect} = chai;
@@ -41,7 +42,11 @@ describe("snaphot", () => {
 
     await createMockProposal(1, 0);
     await ceramicStorage.addProposals(accounts[1].address);
+
+    const {holder} = checkEnvironment("test/.env.test");
+
     config = {
+      ...holder,
       provider: ethers.provider,
       erc20Address: Token.address,
     };

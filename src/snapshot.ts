@@ -10,17 +10,15 @@ import type {HolderBalances} from "./holders";
 import {TileDocument} from "@ceramicnetwork/stream-tile";
 import {Storage} from "./types/storage.d";
 import debug from "debug";
-import dotenv from "dotenv";
 import {BigNumber as BN} from "bignumber.js";
-const snapshotInfoLog = debug("CVsdk:snapshot:info");
 
-dotenv.config();
+const snapshotInfoLog = debug("CVsdk:snapshot:info");
 
 type Config = {
   holdersConfig: HoldersConfig;
-  alpha: number;
-  beta: number;
-  rho: number;
+  alpha?: number;
+  beta?: number;
+  rho?: number;
 };
 
 type ParticipantConviction = {
@@ -82,7 +80,8 @@ export class Snapshot {
         account: c.address,
         convictions: c.convictions.commitId.toString(),
         // TODO: add getter function so this is cleaner
-        // The lookup is technically unnecessary
+        // The lookup is technically unnecessary since the Map solely contains
+        // holders of non-zero quantities of tokens
         balance: holderBalances.get(c.address) ?? "0",
       };
     });
