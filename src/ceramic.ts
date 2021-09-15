@@ -122,7 +122,6 @@ export class CeramicStorage implements Storage {
   async addProposals(address: string): Promise<this> {
     const doc = await this.fetchConvictionDoc(address);
     if (doc) {
-      console.log(doc.content);
       for (const proposal of doc.content.proposals) {
         await this._addProposalToState(proposal);
       }
