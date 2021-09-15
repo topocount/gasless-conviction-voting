@@ -18,7 +18,24 @@ const BLOCK_INCREMENT_DEFAULT = 50000;
 
 const notFound = (e: any): boolean => e.code === "ENOENT";
 
-export type Environment = {
+export type PublicEnvironment = {
+  chainId: string;
+  ceramicApiUrl: string;
+  alpha: number;
+  beta: number;
+  rho: number;
+  interval: number;
+  schedule: string;
+  threeIdSeed: void;
+  holder: void;
+};
+
+export type PublicConfig = {
+  ceramic: CeramicConfig;
+  environment: PublicEnvironment;
+};
+
+export interface Environment {
   chainId: string;
   threeIdSeed: Uint8Array;
   ceramicApiUrl: string;
@@ -27,7 +44,7 @@ export type Environment = {
   beta: number;
   rho: number;
   interval: number;
-};
+}
 
 export type Config = {
   ceramic: CeramicConfig;
