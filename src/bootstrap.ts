@@ -1,4 +1,3 @@
-import dotenv from "dotenv";
 import {promises} from "fs";
 
 import Ceramic from "@ceramicnetwork/http-client";
@@ -98,5 +97,3 @@ export async function run(
   console.log(`Config written to ${path}:`, config);
   return config;
 }
-
-//run().catch(console.error);

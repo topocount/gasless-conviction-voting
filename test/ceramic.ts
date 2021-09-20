@@ -15,7 +15,6 @@ describe("src/ceramic.ts", () => {
       ceramicStorage: storage,
       addresses: ethAddresses,
     } = await setEthCeramicProvider();
-    console.log("test");
     addresses = ethAddresses;
     ceramicStorage = storage;
     await createMockHolderAndProposal(0);

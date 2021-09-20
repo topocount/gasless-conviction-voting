@@ -1,4 +1,4 @@
-import {checkConfig, PublicEnvironment, PublicConfig} from "./config";
+import {checkConfig} from "./config";
 import {CeramicStorage} from "./ceramic";
 import {Snapshot} from "./snapshot";
 

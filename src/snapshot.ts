@@ -95,15 +95,6 @@ export class Snapshot {
     };
 
     this.storage.setStateDocument(nextState);
-    console.log(
-      holderBalances,
-      currentBlockNumber,
-      supply,
-      convictionDocs,
-      stateDocument,
-      proposalDetails,
-      nextState,
-    );
   }
 
   calculateNextProposalConvictions(
@@ -135,7 +126,14 @@ export class Snapshot {
         .plus(fundedSupport)
         .toString();
 
-      console.log(threshold.toString(), totalConviction.toString());
+      snapshotInfoLog(
+        "proposal: ",
+        proposal,
+        "\nthreshold: ",
+        threshold.toString(),
+        "\ntotal conviction: ",
+        totalConviction.toString(),
+      );
       const nextConviction = {
         proposal: proposal.proposal,
         triggered: threshold.lt(totalConviction),
@@ -148,7 +146,7 @@ export class Snapshot {
 
   triggerThreshold({requested, funds, supply, alpha, params}: Threshold): BN {
     const share = requested.div(supply);
-    console.log({requested, funds, supply, alpha});
+    snapshotInfoLog({requested, funds, supply, alpha});
     if (share.lt(params.beta)) {
       const numerator = supply.times(params.rho);
       const denominator = new BN(params.beta)

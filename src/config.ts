@@ -167,5 +167,3 @@ export async function checkConfig(): Promise<Config> {
     environment: environmentConfig,
   };
 }
-
-// checkConfig().then(console.log).catch(console.error);

@@ -120,8 +120,3 @@ async function fetchHoldersFromTransferEvents(
   }
   return holders;
 }
-
-// fetchTokenHolders().catch((e: Error) => {
-//  console.error("holders error: ", e);
-//  throw e;
-// });
