@@ -16,8 +16,8 @@ chai.use(solidity);
 const {expect} = chai;
 
 let ceramicStorage: Storage;
+let snapshot: Snapshot;
 let createMockProposal: (idx: number, amnt?: number) => Promise<void>;
-let resetState: () => Promise<void>;
 
 describe("snaphot", () => {
   let accounts: SignerWithAddress[];
@@ -28,16 +28,13 @@ describe("snaphot", () => {
   before(async () => {
     accounts = await ethers.getSigners();
     TokenFactory = await ethers.getContractFactory("MockToken");
-    const {
-      createMockHolderAndProposal,
-      ceramicStorage: storage,
-      resetState: resetStateFn,
-    } = await setEthCeramicProvider();
+    const {createMockHolderAndProposal, ceramicStorage: storage} =
+      await setEthCeramicProvider();
     ceramicStorage = storage;
     createMockProposal = createMockHolderAndProposal;
   });
 
-  beforeEach(async () => {
+  before(async () => {
     Token = await TokenFactory.deploy("test", "TEST");
 
     await createMockProposal(1, 0);
@@ -59,7 +56,41 @@ describe("snaphot", () => {
   it("works", async () => {
     await createMockProposal(2, 100);
     await ceramicStorage.addProposals(accounts[2].address);
-    const snapshot = new Snapshot(ceramicStorage, {holdersConfig: config});
+    snapshot = new Snapshot(ceramicStorage, {holdersConfig: config});
     await snapshot.updateSnapshot();
+    const state = await ceramicStorage.fetchOrCreateStateDocument();
+    const {proposals, participants, supply} = state;
+    expect(proposals[0]).to.contain({
+      triggered: true,
+      totalConviction: "252.5",
+    });
+    expect(proposals[1]).to.contain({
+      triggered: false,
+      totalConviction: "250",
+    });
+    proposals.map(({proposal}) => expect(proposal).to.be.a("string"));
+    expect(supply).to.equal("1500");
+    expect(participants[0]).to.contain({
+      account: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      balance: "505",
+    });
+    expect(participants[1]).to.contain({
+      account: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      balance: "500",
+    });
+  });
+  it("triggers after conviction builds over multiple calculations", async () => {
+    await snapshot.updateSnapshot();
+    await snapshot.updateSnapshot();
+    const state = await ceramicStorage.fetchOrCreateStateDocument();
+    const {proposals} = state;
+    expect(proposals[0]).to.contain({
+      triggered: true,
+      totalConviction: "479.75",
+    });
+    expect(proposals[1]).to.contain({
+      triggered: true,
+      totalConviction: "475",
+    });
   });
 });

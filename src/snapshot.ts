@@ -94,7 +94,7 @@ export class Snapshot {
       supply,
     };
 
-    this.storage.setStateDocument(nextState);
+    await this.storage.setStateDocument(nextState);
   }
 
   calculateNextProposalConvictions(
@@ -145,6 +145,8 @@ export class Snapshot {
   }
 
   triggerThreshold({requested, funds, supply, alpha, params}: Threshold): BN {
+    // TODO: make the available funds configurable to some address
+    // instead of using the entire token supply
     const share = requested.div(supply);
     snapshotInfoLog({requested, funds, supply, alpha});
     if (share.lt(params.beta)) {
@@ -154,7 +156,7 @@ export class Snapshot {
         .pow(2)
         .times(new BN(1).minus(alpha));
       return numerator.div(denominator);
-      /*
+      /* math in pure JS
       (((params.rho * supply) / (params.beta - share) ** 2) * 1) / (1 - alpha));
       */
     } else {
