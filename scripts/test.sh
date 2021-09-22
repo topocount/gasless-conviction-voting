@@ -2,12 +2,18 @@
 
 set -eux
 
-ceramic daemon --network inmemory > /dev/null 2> /dev/null &
+cleanup() {
+  kill -INT "$ceramic_pid"
+  echo exiting
+}
 
-wait-on tcp:7007 && node src/bootstrap.js http://127.0.0.1:7007
+trap cleanup EXIT
 
-hardhat test
+npx ceramic daemon --network inmemory > /dev/null 2> /dev/null &
+ceramic_pid=$!
+
+wait-on tcp:7007
+
+npx hardhat test
 
 npm run check-pretty
-
-kill -INT %1

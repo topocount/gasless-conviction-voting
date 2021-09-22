@@ -59,11 +59,12 @@ export class CeramicStorage implements Storage {
 
   async setStateDocument(state: ConvictionState): Promise<ConvictionState> {
     await this.checkInit();
-    await this.idx.set("convictionstate", state);
-
-    const result = await this.idx.get("convictionstate");
-    if (!result) throw new Error("Error setting state document");
-    return result as ConvictionState;
+    try {
+      await this.idx.set("convictionstate", state);
+    } catch (e) {
+      throw new Error(`Error setting state document: ${e}`);
+    }
+    return state as ConvictionState;
   }
 
   async fetchOrCreateStateDocument(): Promise<ConvictionState> {

@@ -7,6 +7,7 @@ const {expect} = chai;
 
 let ceramicStorage: CeramicStorage;
 let addresses: string[];
+let createProposal: any;
 
 describe("src/ceramic.ts", () => {
   before(async () => {
@@ -17,25 +18,34 @@ describe("src/ceramic.ts", () => {
     } = await setEthCeramicProvider();
     addresses = ethAddresses;
     ceramicStorage = storage;
-    await createMockHolderAndProposal(0);
+    createProposal = createMockHolderAndProposal;
   });
 
-  it("can init", async () => {
-    await ceramicStorage.init();
+  describe("empty state", () => {
+    it("can init", async () => {
+      await ceramicStorage.init();
+    });
+    it("can create a state doc if none exists", async () => {
+      const state = await ceramicStorage.fetchOrCreateStateDocument();
+      expect(state).to.deep.equal(emptyState);
+    });
   });
-  it("can create a state doc if none exists", async () => {
-    const state = await ceramicStorage.fetchOrCreateStateDocument();
-    expect(state).to.deep.equal(emptyState);
-  });
-  it("can read a state doc", async () => {
-    const testState = {...emptyState};
-    testState.blockHeight = 10;
-    const state = await ceramicStorage.setStateDocument(testState);
-    expect(state).to.deep.equal(testState);
+  describe("modifying state", () => {
+    it("can read an updated state doc", async () => {
+      const testState = {...emptyState};
+      testState.blockHeight = 10;
+      await ceramicStorage.setStateDocument(testState);
+      const state = await ceramicStorage.fetchOrCreateStateDocument();
+
+      expect(state).to.deep.equal(testState);
+    });
   });
   describe("fetchConvictionDoc", () => {
+    before(async () => {
+      await createProposal(1);
+    });
     it("can fetch a conviction doc", async () => {
-      const conviction = await ceramicStorage.fetchConvictionDoc(addresses[0]);
+      const conviction = await ceramicStorage.fetchConvictionDoc(addresses[1]);
       expect(conviction?.content).to.include.keys(
         "context",
         "proposals",
@@ -49,7 +59,7 @@ describe("src/ceramic.ts", () => {
   });
   describe("Proposals", () => {
     it("addProposals can fetch a proposal doc and add it to the state doc", async () => {
-      const storage = await ceramicStorage.addProposals(addresses[0]);
+      const storage = await ceramicStorage.addProposals(addresses[1]);
       const state = await storage.fetchOrCreateStateDocument();
       expect(state.proposals.length).to.equal(1);
     });

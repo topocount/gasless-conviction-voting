@@ -75,8 +75,6 @@ export async function setEthCeramicProvider(): Promise<{
     ceramic.did.setProvider(ceramicProvider);
     await ceramic.did.authenticate();
 
-    // This fails because the personal_sign JSON-RPC endpoing doesn't
-    // exist in Hardhat or hardhat or truffle
     const ethAuthProvider = new EthereumAuthProvider(
       ethProvider,
       addresses[addressIndex],

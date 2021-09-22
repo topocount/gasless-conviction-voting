@@ -60,6 +60,7 @@ describe("snaphot", () => {
     await snapshot.updateSnapshot();
     const state = await ceramicStorage.fetchOrCreateStateDocument();
     const {proposals, participants, supply} = state;
+    console.log(state);
     expect(proposals[0]).to.contain({
       triggered: true,
       totalConviction: "252.5",
@@ -81,7 +82,7 @@ describe("snaphot", () => {
   });
   it("triggers after conviction builds over multiple calculations", async () => {
     await snapshot.updateSnapshot();
-    await snapshot.updateSnapshot();
+    // await snapshot.updateSnapshot();
     const state = await ceramicStorage.fetchOrCreateStateDocument();
     const {proposals} = state;
     expect(proposals[0]).to.contain({
