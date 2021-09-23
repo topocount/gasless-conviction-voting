@@ -119,7 +119,7 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
   }
   let alpha = null;
   if (ALPHA) {
-    alpha = Number.parseInt(ALPHA);
+    alpha = Number.parseFloat(ALPHA);
   }
   if (!SNAPSHOT_INTERVAL_HOURS)
     throw new Error("Please set SNAPSHOT_INTERVAL_HOURS");
@@ -135,10 +135,10 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
   if (!MAX_FUND_PROPORTION)
     throw new Error("Please enter a MAX_FUND_PROPORTION in .env");
 
-  const beta = Number.parseInt(MAX_FUND_PROPORTION);
+  const beta = Number.parseFloat(MAX_FUND_PROPORTION);
 
   let rho = RHO_DEFAULT;
-  if (RHO) rho = Number.parseInt(RHO);
+  if (RHO) rho = Number.parseFloat(RHO);
 
   const holder = {
     provider: new providers.JsonRpcProvider(ethRpc),

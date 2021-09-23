@@ -90,10 +90,11 @@ export async function run(
       },
     ),
   );
+  if (path) {
+    console.log("Writing ceramic.json", config);
+    await writeFile(path, JSON.stringify(config, null, 2));
 
-  console.log("Writing ceramic.json", config);
-  await writeFile(path, JSON.stringify(config, null, 2));
-
-  console.log(`Config written to ${path}:`, config);
+    console.log(`Config written to ${path}:`, config);
+  }
   return config;
 }

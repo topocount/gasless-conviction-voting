@@ -58,9 +58,10 @@ describe("src/ceramic.ts", () => {
     });
   });
   describe("Proposals", () => {
+    before(async () => {});
     it("addProposals can fetch a proposal doc and add it to the state doc", async () => {
-      const storage = await ceramicStorage.addProposals(addresses[1]);
-      const state = await storage.fetchOrCreateStateDocument();
+      await ceramicStorage.addProposals(addresses[1]);
+      const state = await ceramicStorage.fetchOrCreateStateDocument();
       expect(state.proposals.length).to.equal(1);
     });
     it("can fetch a proposal from the DID on the state doc", async () => {

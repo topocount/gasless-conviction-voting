@@ -111,10 +111,14 @@ export class CeramicStorage implements Storage {
     let convictions = null;
     const index = await this.idx.getIndex(did);
     if (index) {
-      convictions = await TileDocument.load<Convictions>(
-        this.ceramic,
-        index[this.config.ceramic.definitions.convictions],
-      );
+      try {
+        convictions = await TileDocument.load<Convictions>(
+          this.ceramic,
+          index[this.config.ceramic.definitions.convictions],
+        );
+      } catch (_) {
+        return null;
+      }
       if (!convictions.content) return null;
     }
     return convictions;

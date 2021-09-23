@@ -57,6 +57,16 @@ async function main(): Promise<void> {
     res.sendStatus(200);
   });
 
+  app.get("/snapshot", async (req, res) => {
+    snapshot.updateSnapshot();
+    res.sendStatus(200);
+  });
+
+  app.get("/state", async (req, res) => {
+    const result = await snapshot.storage.fetchOrCreateStateDocument();
+    res.send(result);
+  });
+
   app.listen(PORT, () => {
     console.log(`Listening on port ${PORT}`);
   });

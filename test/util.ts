@@ -12,6 +12,7 @@ import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
 import {randomBytes} from "@stablelib/random";
 import {checkEnvironment, getCeramicAppConfig} from "../src/config";
+import {run} from "../src/bootstrap";
 
 const env = checkEnvironment("test/.env.test");
 
@@ -50,7 +51,37 @@ export const emptyState = {
   proposals: [],
 };
 
+async function authenticatedCeramic(
+  addressIndex: number,
+): Promise<CeramicClient> {
+  const ceramic = new CeramicClient(URI);
+  const seed = randomBytes(32);
+
+  const ceramicProvider = new Ed25519Provider(seed);
+  const resolver = {
+    ...KeyDidResolver.getResolver(),
+    ...ThreeIdResolver.getResolver(ceramic),
+  };
+  ceramic.did = new DID({resolver});
+
+  ceramic.did.setProvider(ceramicProvider);
+  await ceramic.did.authenticate();
+
+  const ethAuthProvider = new EthereumAuthProvider(
+    ethProvider,
+    addresses[addressIndex],
+  );
+
+  const accountId = await ethAuthProvider.accountId();
+
+  const accountLink = await Caip10Link.fromAccount(ceramic, accountId);
+
+  await accountLink.setDid(ceramic.did.id, ethAuthProvider);
+  return ceramic;
+}
+
 export async function setEthCeramicProvider(): Promise<{
+  createMockHolder: (idx: number) => Promise<CeramicClient>;
   createMockHolderAndProposal: (arg0: number) => Promise<void>;
   addresses: string[];
   ceramicStorage: CeramicStorage;
@@ -60,31 +91,8 @@ export async function setEthCeramicProvider(): Promise<{
     addressIndex: number,
     amount = 100,
   ): Promise<void> {
-    const ceramic = new CeramicClient(URI);
+    const ceramic = await authenticatedCeramic(addressIndex);
     const idx = new IDX({ceramic, aliases: config.ceramic.definitions});
-
-    const seed = randomBytes(32);
-
-    const ceramicProvider = new Ed25519Provider(seed);
-    const resolver = {
-      ...KeyDidResolver.getResolver(),
-      ...ThreeIdResolver.getResolver(ceramic),
-    };
-    ceramic.did = new DID({resolver});
-
-    ceramic.did.setProvider(ceramicProvider);
-    await ceramic.did.authenticate();
-
-    const ethAuthProvider = new EthereumAuthProvider(
-      ethProvider,
-      addresses[addressIndex],
-    );
-
-    const accountId = await ethAuthProvider.accountId();
-
-    const accountLink = await Caip10Link.fromAccount(ceramic, accountId);
-
-    await accountLink.setDid(ceramic.did.id, ethAuthProvider);
 
     const proposalRecordId = await idx.set("proposal", {
       amount: amount.toString(),
@@ -115,7 +123,7 @@ export async function setEthCeramicProvider(): Promise<{
     const result = sigUtils.personalSign(account.secretKey, {data});
     callback(null, result);
   };
-  const ceramicConfig = await getCeramicAppConfig(env);
+  const ceramicConfig = await run("", env);
   const config = {
     environment: env,
     ceramic: ceramicConfig,
@@ -126,5 +134,11 @@ export async function setEthCeramicProvider(): Promise<{
     await ceramicStorage.setStateDocument(emptyState);
   }
   await resetState();
-  return {createMockHolderAndProposal, addresses, ceramicStorage, resetState};
+  return {
+    createMockHolderAndProposal,
+    addresses,
+    ceramicStorage,
+    resetState,
+    createMockHolder: authenticatedCeramic,
+  };
 }

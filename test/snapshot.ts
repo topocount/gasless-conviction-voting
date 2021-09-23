@@ -18,8 +18,9 @@ const {expect} = chai;
 let ceramicStorage: Storage;
 let snapshot: Snapshot;
 let createMockProposal: (idx: number, amnt?: number) => Promise<void>;
+let createHolder: any;
 
-describe("snaphot", () => {
+describe("snapshot", () => {
   let accounts: SignerWithAddress[];
   let TokenFactory: ContractFactory;
   let Token: Contract;
@@ -28,10 +29,14 @@ describe("snaphot", () => {
   before(async () => {
     accounts = await ethers.getSigners();
     TokenFactory = await ethers.getContractFactory("MockToken");
-    const {createMockHolderAndProposal, ceramicStorage: storage} =
-      await setEthCeramicProvider();
+    const {
+      createMockHolderAndProposal,
+      ceramicStorage: storage,
+      createMockHolder,
+    } = await setEthCeramicProvider();
     ceramicStorage = storage;
     createMockProposal = createMockHolderAndProposal;
+    createHolder = createMockHolder;
   });
 
   before(async () => {
@@ -52,10 +57,18 @@ describe("snaphot", () => {
     await Token.mint(accounts[1].address, 500);
     await Token.mint(accounts[2].address, 500);
     await Token.transfer(accounts[1].address, 5);
+    await Token.transfer(accounts[2].address, 5);
+
+    await Token.transfer(accounts[5].address, 100);
   });
-  it("works", async () => {
+  before(async () => {
     await createMockProposal(2, 100);
     await ceramicStorage.addProposals(accounts[2].address);
+  });
+  before(async () => {
+    await createHolder(5);
+  });
+  it("works", async () => {
     snapshot = new Snapshot(ceramicStorage, {holdersConfig: config});
     await snapshot.updateSnapshot();
     const state = await ceramicStorage.fetchOrCreateStateDocument();
@@ -67,7 +80,7 @@ describe("snaphot", () => {
     });
     expect(proposals[1]).to.contain({
       triggered: false,
-      totalConviction: "250",
+      totalConviction: "252.5",
     });
     proposals.map(({proposal}) => expect(proposal).to.be.a("string"));
     expect(supply).to.equal("1500");
@@ -77,7 +90,7 @@ describe("snaphot", () => {
     });
     expect(participants[1]).to.contain({
       account: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      balance: "500",
+      balance: "505",
     });
   });
   it("triggers after conviction builds over multiple calculations", async () => {
@@ -91,7 +104,7 @@ describe("snaphot", () => {
     });
     expect(proposals[1]).to.contain({
       triggered: true,
-      totalConviction: "475",
+      totalConviction: "479.75",
     });
   });
 });

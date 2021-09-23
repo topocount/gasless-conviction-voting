@@ -15,4 +15,6 @@ RUN npm install
 #Bundle app source (excluding things in .dockerignore)
 COPY . .
 
-RUN npm run test
+EXPOSE 3000
+
+CMD ["npx", "ts-node", "src/server.ts"]

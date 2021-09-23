@@ -35,7 +35,7 @@ export function getCaipFromErc20Address(
 export function mkdirx(path: string): void {
   try {
     mkdirSync(path, {recursive: true});
-  } catch (e) {
+  } catch (e: any) {
     if (e.code !== "EEXIST") {
       throw e;
     }
