@@ -18,6 +18,12 @@ const BLOCK_INCREMENT_DEFAULT = 50000;
 
 const notFound = (e: any): boolean => e.code === "ENOENT";
 
+export function getDebug(path = ".env"): string | undefined {
+  dotenv.config({path});
+  const {DEBUG} = process.env;
+  return DEBUG;
+}
+
 export type PublicEnvironment = {
   chainId: string;
   ceramicApiUrl: string;

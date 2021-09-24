@@ -1,5 +1,5 @@
 {
-  "name": "gasless-conviction-sdk",
+  "name": "gasless-conviction-service",
   "version": "0.0.0",
   "description": "A service that periodically calculates conviction using the Ethereum blockchain and Ceramic",
   "author": "Kevin Siegler <17910833+topocount@users.noreply.github.com>",
@@ -42,7 +42,7 @@
     "@3id/connect": "^0.1.6",
     "@ceramicnetwork/3id-did-resolver": "^1.2.7",
     "@ceramicnetwork/http-client": "^1.1.1",
-    "@ceramicnetwork/stream-caip10-link": "^1.0.7",
+    "@ceramicnetwork/stream-caip10-link": "1.0.0",
     "@ceramicnetwork/stream-tile": "^1.0.7",
     "@ceramicstudio/idx": "^0.12.1",
     "@ceramicstudio/idx-tools": "^0.11.0",

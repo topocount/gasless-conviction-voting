@@ -1,4 +1,7 @@
-import {checkConfig} from "./config";
+import {checkConfig, getDebug} from "./config";
+// set debug var before invoking all tooling that can use it
+process.env.DEBUG = getDebug();
+
 import {CeramicStorage} from "./ceramic";
 import {Snapshot} from "./snapshot";
 
@@ -58,7 +61,7 @@ async function main(): Promise<void> {
   });
 
   app.get("/snapshot", async (req, res) => {
-    snapshot.updateSnapshot();
+    await snapshot.updateSnapshot();
     res.sendStatus(200);
   });
 

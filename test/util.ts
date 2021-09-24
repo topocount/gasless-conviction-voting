@@ -94,6 +94,9 @@ export async function setEthCeramicProvider(): Promise<{
     const ceramic = await authenticatedCeramic(addressIndex);
     const idx = new IDX({ceramic, aliases: config.ceramic.definitions});
 
+    // This is bad and lazy. Do not create proposals this way in production,
+    // since we want to allow users to create multiple proposals. Use the
+    // TileDocument api instead
     const proposalRecordId = await idx.set("proposal", {
       amount: amount.toString(),
       beneficiary: "me",

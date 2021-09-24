@@ -7,7 +7,8 @@
     "declarationDir": "./types",
     "declarationMap": true,
     "outDir": "dist",
-    "sourceMap": true
+    "sourceMap": true,
+    "target": "ES6"
   },
   "paths": {
     "*": ["node_modules/*", "src/types/*"]

@@ -7,9 +7,12 @@ import {IDX} from "@ceramicstudio/idx";
 import {Caip10Link} from "@ceramicnetwork/stream-caip10-link";
 import {TileDocument} from "@ceramicnetwork/stream-tile";
 import {Config} from "./config";
-
+import debug from "debug";
 import {ConvictionState, Convictions, Proposal} from "./types";
 import {Storage} from "./types/storage.d";
+
+const ceramicDebugLog = debug("CVsdk:ceramic:debug");
+const ceramicInfoLog = debug("CVsdk:ceramic:info");
 
 interface AuthenticatedCeramicClient extends CeramicClient {
   did: DID;
@@ -50,11 +53,11 @@ export class CeramicStorage implements Storage {
   // Get linked DID from ethereum address
   async toDID(address: string): Promise<string | null> {
     await this.checkInit();
-    const {did} = await Caip10Link.fromAccount(
-      this.ceramic,
-      `${address}@eip155:${this.chainId}`,
-    );
-    return did;
+    const key = `${address}@eip155:${this.chainId}`.toLocaleLowerCase();
+    ceramicDebugLog(`using key: ${key}`);
+    const doc = await Caip10Link.fromAccount(this.ceramic, key);
+    ceramicDebugLog("link did: ", doc.did);
+    return doc.did;
   }
 
   async setStateDocument(state: ConvictionState): Promise<ConvictionState> {
@@ -89,7 +92,7 @@ export class CeramicStorage implements Storage {
       .map(({proposal}) => proposal)
       .includes(docId);
     if (proposalExists) {
-      console.warn(`Proposal ${docId} Already Exists in State`);
+      ceramicInfoLog(`Proposal ${docId} Already Exists in State`);
       return;
     }
     state.proposals.push({

@@ -34,8 +34,22 @@ type HolderSnapshot = {
 
 export async function fetchTokenHolders(
   config: Config,
+  lastSyncedBlock?: number,
 ): Promise<HolderSnapshot> {
-  const {erc20Address, blockIncrement, startBlock, provider} = config;
+  const {
+    erc20Address,
+    blockIncrement,
+    startBlock: deployedBlock,
+    provider,
+  } = config;
+
+  // if the lastSyncedBlock is zero or undefined, fall back to the block set
+  // in the .env
+  holdersDebugLog(
+    `last synced block: ${lastSyncedBlock}\ndeployed block: ${deployedBlock}`,
+  );
+  let startBlock = lastSyncedBlock || deployedBlock;
+  startBlock = deployedBlock;
   holdersInfoLog("Start: Getting Token Holders");
   holdersDebugLog(
     "\nincrement: ",
@@ -52,6 +66,7 @@ export async function fetchTokenHolders(
     currentBlockNumber,
     tokenContract,
     config,
+    startBlock,
   );
 
   const {holderBalances, supply} = await getHolderBalances(
@@ -60,7 +75,7 @@ export async function fetchTokenHolders(
     tokenContract,
   );
 
-  holdersDebugLog("number of non-zero addresses: ", holderBalances.size);
+  holdersInfoLog("number of non-zero addresses: ", holderBalances.size);
 
   holdersInfoLog("Finish: Getting Token Holders");
   return {holderBalances, currentBlockNumber, supply};
@@ -89,6 +104,7 @@ async function fetchHoldersFromTransferEvents(
   currentBlockNumber: number,
   contract: ethers.Contract,
   config: Config,
+  startBlock: number,
 ): Promise<Set<string>> {
   // set up a filter that emits all transfer events
   const transferFilter = contract.filters.Transfer();
@@ -98,14 +114,23 @@ async function fetchHoldersFromTransferEvents(
   // loop from top of the blockchain and grab all addresses from transfer
   // events
   for (
-    let block = currentBlockNumber;
-    block > config.startBlock;
-    block -= config.blockIncrement
+    let block = startBlock;
+    block < currentBlockNumber;
+    block += config.blockIncrement
   ) {
+    holdersDebugLog("token holders: ", holders.size);
+    holdersDebugLog(`through block ${block}`);
+    holdersDebugLog(
+      (100 * (currentBlockNumber - block)) / (currentBlockNumber - startBlock),
+      "% of blocks remaining: ",
+      block + "/" + currentBlockNumber,
+    );
     const newTransfers = await contract.queryFilter(
       transferFilter,
-      block - config.blockIncrement > 0 ? block - config.blockIncrement : 0,
       block,
+      block + config.blockIncrement < currentBlockNumber
+        ? block + config.blockIncrement
+        : currentBlockNumber,
     );
     for (const transfer of newTransfers) {
       const {args} = transfer;
@@ -114,9 +139,6 @@ async function fetchHoldersFromTransferEvents(
         if (args.to) holders.add(args.to);
       }
     }
-    holdersDebugLog("token holders: ", holders.size);
-    holdersDebugLog(`through block ${block - config.blockIncrement}`);
-    holdersDebugLog((currentBlockNumber - block) / currentBlockNumber, "%");
   }
   return holders;
 }

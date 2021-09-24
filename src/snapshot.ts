@@ -13,6 +13,7 @@ import debug from "debug";
 import {BigNumber as BN} from "bignumber.js";
 
 const snapshotInfoLog = debug("CVsdk:snapshot:info");
+const snapshotDebugLog = debug("CVsdk:snapshot:debug");
 
 type Config = {
   holdersConfig: HoldersConfig;
@@ -30,7 +31,6 @@ type HolderConvictionDocs = Array<ParticipantConviction>;
 interface ProposalDetail extends ProposalConviction {
   amount: string;
 }
-
 type ProposalDetails = Array<ProposalDetail>;
 
 interface Threshold {
@@ -56,35 +56,45 @@ export class Snapshot {
   }
 
   async updateSnapshot(): Promise<void> {
-    snapshotInfoLog("fetching token state");
+    snapshotInfoLog("Start: snapshot");
+    const stateDocument = await this.storage.fetchOrCreateStateDocument();
+    snapshotInfoLog(`prior state document: ${JSON.stringify(stateDocument)}`);
+    const lastSyncedBlock = stateDocument.blockHeight;
+    snapshotInfoLog("Start: fetching token state");
     const {holderBalances, currentBlockNumber, supply} =
-      await fetchTokenHolders(this.config.holdersConfig);
+      await fetchTokenHolders(this.config.holdersConfig, lastSyncedBlock);
+    snapshotInfoLog("Finish: fetching token state");
     const convictionDocs = await this.fetchConvictionsDocs(
       holderBalances.keys(),
     );
-    const stateDocument = await this.storage.fetchOrCreateStateDocument();
 
+    snapshotInfoLog("Start: fetch proposals from state");
     const proposalDetails = await this.fetchProposalDocs(
       stateDocument.proposals,
     );
+    snapshotInfoLog("Finish: fetch proposals from state");
 
+    snapshotInfoLog("Start: calculate proposal convictions");
     const nextProposals = this.calculateNextProposalConvictions(
       proposalDetails,
       convictionDocs,
       holderBalances,
       supply,
     );
+    snapshotInfoLog("Finish: calculate proposal convictions");
 
+    snapshotInfoLog("Start: Map out Partcipants list");
     const nextParticipants = convictionDocs.map((c: ParticipantConviction) => {
       return {
         account: c.address,
         convictions: c.convictions.commitId.toString(),
         // TODO: add getter function so this is cleaner
-        // The lookup is technically unnecessary since the Map solely contains
+        // The fallback is technically unnecessary since the Map solely contains
         // holders of non-zero quantities of tokens
         balance: holderBalances.get(c.address) ?? "0",
       };
     });
+    snapshotInfoLog("Finish: Map out Partcipants list");
 
     const nextState: ConvictionState = {
       context: stateDocument.context,
@@ -94,7 +104,10 @@ export class Snapshot {
       supply,
     };
 
+    snapshotDebugLog(`Start: Storing Next State: ${JSON.stringify(nextState)}`);
     await this.storage.setStateDocument(nextState);
+    snapshotDebugLog(`Finish: Storing Next State`);
+    snapshotInfoLog;
   }
 
   calculateNextProposalConvictions(
@@ -126,7 +139,7 @@ export class Snapshot {
         .plus(fundedSupport)
         .toString();
 
-      snapshotInfoLog(
+      snapshotDebugLog(
         "proposal: ",
         proposal,
         "\nthreshold: ",
@@ -148,7 +161,7 @@ export class Snapshot {
     // TODO: make the available funds configurable to some address
     // instead of using the entire token supply
     const share = requested.div(supply);
-    snapshotInfoLog({requested, funds, supply, alpha});
+    snapshotDebugLog({requested, funds, supply, alpha});
     if (share.lt(params.beta)) {
       const numerator = supply.times(params.rho);
       const denominator = new BN(params.beta)
@@ -187,10 +200,12 @@ export class Snapshot {
   async fetchProposalDocs(
     proposals: ProposalConvictions,
   ): Promise<ProposalDetails> {
+    snapshotDebugLog("fetching these proposals: ", proposals);
     const proposalPromises = proposals.map(({proposal}) =>
       this.storage.fetchProposal(proposal),
     );
     const proposalDocs = await Promise.all(proposalPromises);
+    snapshotDebugLog("got these proposal docs: ", proposalDocs);
     const proposalDetails = [];
     for (let i = 0; i < proposals.length; i++) {
       proposalDetails.push({
@@ -210,9 +225,17 @@ export class Snapshot {
   ): Promise<HolderConvictionDocs> {
     const holderConvictionDocs = [];
     for (const address of holders) {
+      snapshotDebugLog(`Start: fetching conviction doc for ${address}`);
       const convictions = await this.storage.fetchConvictionDoc(address);
-      if (convictions && this.validateConvictions(convictions))
+      snapshotDebugLog(
+        `Done: fetching conviction doc for ${address}; got ${JSON.stringify(
+          convictions,
+        )}`,
+      );
+      if (convictions && this.validateConvictions(convictions)) {
+        snapshotDebugLog(`Adding convictions doc to state for ${address}`);
         holderConvictionDocs.push({address, convictions});
+      }
     }
     return holderConvictionDocs;
   }
