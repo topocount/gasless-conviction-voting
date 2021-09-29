@@ -43,7 +43,7 @@ describe("fetchTokenHolders", () => {
 
   it("filters out zero-balance holders", async () => {
     expect(await Token.balanceOf(accounts[1].address)).to.equal(10);
-    const {holderBalances, supply} = await fetchTokenHolders(config);
+    const {holderBalances, supply} = await fetchTokenHolders(config, []);
     expect(holderBalances.get(accounts[1].address)).to.equal("10");
     expect(holderBalances.get(accounts[2].address)).to.equal("5");
     expect(holderBalances.get(accounts[0].address)).to.be.undefined;

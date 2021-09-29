@@ -34,6 +34,7 @@ type HolderSnapshot = {
 
 export async function fetchTokenHolders(
   config: Config,
+  lastSyncedHolders: Array<string>,
   lastSyncedBlock?: number,
 ): Promise<HolderSnapshot> {
   const {
@@ -48,8 +49,7 @@ export async function fetchTokenHolders(
   holdersDebugLog(
     `last synced block: ${lastSyncedBlock}\ndeployed block: ${deployedBlock}`,
   );
-  let startBlock = lastSyncedBlock || deployedBlock;
-  startBlock = deployedBlock;
+  const startBlock = lastSyncedBlock || deployedBlock;
   holdersInfoLog("Start: Getting Token Holders");
   holdersDebugLog(
     "\nincrement: ",
@@ -68,6 +68,8 @@ export async function fetchTokenHolders(
     config,
     startBlock,
   );
+
+  lastSyncedHolders.forEach((holder) => holders.add(holder));
 
   const {holderBalances, supply} = await getHolderBalances(
     holders,

@@ -73,7 +73,6 @@ describe("snapshot", () => {
     await snapshot.updateSnapshot();
     const state = await ceramicStorage.fetchOrCreateStateDocument();
     const {proposals, participants, supply} = state;
-    console.log(state);
     expect(proposals[0]).to.contain({
       triggered: true,
       totalConviction: "252.5",
@@ -84,6 +83,7 @@ describe("snapshot", () => {
     });
     proposals.map(({proposal}) => expect(proposal).to.be.a("string"));
     expect(supply).to.equal("1500");
+    expect(proposals.length).to.equal(2);
     expect(participants[0]).to.contain({
       account: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       balance: "505",
@@ -95,16 +95,26 @@ describe("snapshot", () => {
   });
   it("triggers after conviction builds over multiple calculations", async () => {
     await snapshot.updateSnapshot();
-    // await snapshot.updateSnapshot();
+    await snapshot.updateSnapshot();
     const state = await ceramicStorage.fetchOrCreateStateDocument();
-    const {proposals} = state;
+    const {proposals, participants} = state;
+    expect(proposals.length).to.equal(2);
     expect(proposals[0]).to.contain({
       triggered: true,
-      totalConviction: "479.75",
+      totalConviction: "252.5",
     });
     expect(proposals[1]).to.contain({
       triggered: true,
-      totalConviction: "479.75",
+      totalConviction: "684.275",
+    });
+    expect(participants.length).to.equal(2);
+    expect(participants[0]).to.contain({
+      account: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      balance: "505",
+    });
+    expect(participants[1]).to.contain({
+      account: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      balance: "505",
     });
   });
 });

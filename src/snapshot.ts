@@ -58,11 +58,19 @@ export class Snapshot {
   async updateSnapshot(): Promise<void> {
     snapshotInfoLog("Start: snapshot");
     const stateDocument = await this.storage.fetchOrCreateStateDocument();
-    snapshotInfoLog(`prior state document: ${JSON.stringify(stateDocument)}`);
+    //snapshotInfoLog(`prior state document: ${JSON.stringify(stateDocument)}`);
     const lastSyncedBlock = stateDocument.blockHeight;
     snapshotInfoLog("Start: fetching token state");
+    const syncedHolders = stateDocument.participants.map(
+      (participant) => participant.account,
+    );
+
     const {holderBalances, currentBlockNumber, supply} =
-      await fetchTokenHolders(this.config.holdersConfig, lastSyncedBlock);
+      await fetchTokenHolders(
+        this.config.holdersConfig,
+        syncedHolders,
+        lastSyncedBlock,
+      );
     snapshotInfoLog("Finish: fetching token state");
     const convictionDocs = await this.fetchConvictionsDocs(
       holderBalances.keys(),
@@ -104,7 +112,7 @@ export class Snapshot {
       supply,
     };
 
-    snapshotDebugLog(`Start: Storing Next State: ${JSON.stringify(nextState)}`);
+    //snapshotDebugLog(`Start: Storing Next State: ${JSON.stringify(nextState)}`);
     await this.storage.setStateDocument(nextState);
     snapshotDebugLog(`Finish: Storing Next State`);
     snapshotInfoLog;
@@ -118,6 +126,20 @@ export class Snapshot {
   ): ProposalConvictions {
     const nextConvictions: ProposalConvictions = [];
     for (const proposal of proposals) {
+      // if proposal is already triggered, skip recalculation. There is no
+      // condition where a proposal can revert to an untriggered state
+      if (proposal.triggered) {
+        //TODO: break out into addToNextConvictions. Also consider not
+        // allowing triggered convictions to enter this function and readding
+        // them later.
+        const nextConviction = {
+          proposal: proposal.proposal,
+          triggered: proposal.triggered,
+          totalConviction: proposal.totalConviction,
+        };
+        nextConvictions.push(nextConviction);
+        continue;
+      }
       const fundedSupport = this.sumSupport(
         proposal.proposal,
         holderConvictions,
@@ -228,9 +250,9 @@ export class Snapshot {
       snapshotDebugLog(`Start: fetching conviction doc for ${address}`);
       const convictions = await this.storage.fetchConvictionDoc(address);
       snapshotDebugLog(
-        `Done: fetching conviction doc for ${address}; got ${JSON.stringify(
-          convictions,
-        )}`,
+        //  `Done: fetching conviction doc for ${address}; got ${JSON.stringify(
+        convictions,
+        //  )}`,
       );
       if (convictions && this.validateConvictions(convictions)) {
         snapshotDebugLog(`Adding convictions doc to state for ${address}`);
