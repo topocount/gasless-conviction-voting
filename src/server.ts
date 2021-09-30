@@ -6,14 +6,25 @@ import {CeramicStorage} from "./ceramic";
 import {Snapshot} from "./snapshot";
 
 import express from "express";
+import cors from "cors";
 import cron from "node-cron";
 
 const PORT = 3000;
 async function main(): Promise<void> {
   const config = await checkConfig();
 
-  const {chainId, ceramicApiUrl, holder, alpha, beta, rho, interval} =
-    config.environment;
+  const {
+    chainId,
+    ceramicApiUrl,
+    holder,
+    alpha,
+    beta,
+    rho,
+    interval,
+    allowedOrigins,
+    proposers,
+    treasury,
+  } = config.environment;
 
   const cron_string = `0 */${interval} * * *`;
 
@@ -31,6 +42,7 @@ async function main(): Promise<void> {
 
   const snapshotConfig = {
     holdersConfig: holder,
+    treasury,
     alpha,
     beta,
     rho,
@@ -44,11 +56,22 @@ async function main(): Promise<void> {
 
   const app = express();
 
-  app.get("/", (req, res) => {
+  const corsConfig = {
+    origin: allowedOrigins,
+  };
+
+  // @ts-expect-error type for middleware overload doesn't exist
+  app.get("/", cors(corsConfig), (req, res) => {
     res.send(publicConfig);
   });
 
-  app.get("/proposals/:address", async (req, res) => {
+  // @ts-expect-error type for middleware overload doesn't exist
+  app.get("/proposals/:address", cors(corsConfig), async (req, res) => {
+    const address = req.params.address;
+    if (proposers && !proposers.includes(address)) {
+      res.sendStatus(403);
+      return;
+    }
     try {
       await ceramicStorage.addProposals(req.params.address);
     } catch (e) {
@@ -59,6 +82,9 @@ async function main(): Promise<void> {
     }
     res.sendStatus(200);
   });
+
+  // the below routes are for use by server admins (making local calls on
+  // the server for testing purposes and are therefore not cors-enabled
 
   app.get("/snapshot", async (req, res) => {
     await snapshot.updateSnapshot();

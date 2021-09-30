@@ -42,7 +42,7 @@
           "maxLength": 150
         }
       },
-      "required": ["account", "balance", "convictions"]
+      "required": ["account", "balance"]
     },
     "proposals": {
       "type": "object",

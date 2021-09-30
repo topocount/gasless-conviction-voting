@@ -11,7 +11,7 @@ export type ConvictionState = {
 export type Participants = {
   account: string;
   balance: string;
-  convictions: string;
+  convictions?: string;
 };
 
 export type ProposalConvictions = ProposalConviction[];

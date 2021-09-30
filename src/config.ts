@@ -26,6 +26,7 @@ export function getDebug(path = ".env"): string | undefined {
 
 export type PublicEnvironment = {
   chainId: string;
+  proposers: Array<string>;
   ceramicApiUrl: string;
   alpha: number;
   beta: number;
@@ -43,6 +44,9 @@ export type PublicConfig = {
 
 export interface Environment {
   chainId: string;
+  proposers?: Array<string>;
+  treasury?: string;
+  allowedOrigins: Array<string>;
   threeIdSeed: Uint8Array;
   ceramicApiUrl: string;
   holder: HoldersConfig;
@@ -77,6 +81,7 @@ export async function getCeramicAppConfig(
 export function checkEnvironment(pathToDotEnv = ".env"): Environment {
   dotenv.config({path: pathToDotEnv});
   const {
+    ALLOWED_ORIGINS,
     ALPHA,
     BLOCK_INCREMENT,
     CERAMIC_API_URL,
@@ -85,10 +90,13 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
     ETH_RPC,
     HALF_LIFE_DAYS,
     MAX_FUND_PROPORTION,
+    NODE_ENV,
+    PROPOSER_ADDRESSES,
     RHO,
     SNAPSHOT_INTERVAL_HOURS,
     START_BLOCK,
     THREE_ID_SEED,
+    TREASURY_ADDRESS,
   } = process.env;
 
   if (!ETH_RPC) throw new Error("Please set an ETH_RPC url in your .env file");
@@ -123,6 +131,13 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
       THREE_ID_SEED.split(",").map(Number.parseInt),
     );
   }
+
+  let allowedOrigins = ["*"];
+  if (ALLOWED_ORIGINS) {
+    allowedOrigins = ALLOWED_ORIGINS.split(",");
+  } else if (NODE_ENV === "production")
+    throw new Error("No universal cors allowed in production");
+
   let alpha = null;
   if (ALPHA) {
     alpha = Number.parseFloat(ALPHA);
@@ -146,6 +161,14 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
   let rho = RHO_DEFAULT;
   if (RHO) rho = Number.parseFloat(RHO);
 
+  let treasury: string | undefined;
+  if (TREASURY_ADDRESS) treasury = TREASURY_ADDRESS;
+
+  let proposers: Array<string> | undefined;
+
+  if (PROPOSER_ADDRESSES) {
+    proposers = PROPOSER_ADDRESSES.split(",");
+  }
   const holder = {
     provider: new providers.JsonRpcProvider(ethRpc),
     erc20Address,
@@ -153,6 +176,7 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
     startBlock,
   };
   return {
+    allowedOrigins,
     threeIdSeed,
     ceramicApiUrl,
     chainId,
@@ -160,6 +184,8 @@ export function checkEnvironment(pathToDotEnv = ".env"): Environment {
     alpha,
     beta,
     rho,
+    treasury,
+    proposers,
     holder,
   };
 }

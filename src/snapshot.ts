@@ -17,6 +17,7 @@ const snapshotDebugLog = debug("CVsdk:snapshot:debug");
 
 type Config = {
   holdersConfig: HoldersConfig;
+  treasury?: string;
   alpha?: number;
   beta?: number;
   rho?: number;
@@ -24,7 +25,7 @@ type Config = {
 
 type ParticipantConviction = {
   address: string;
-  convictions: TileDocument<Convictions>;
+  convictions?: TileDocument<Convictions>;
 };
 type HolderConvictionDocs = Array<ParticipantConviction>;
 
@@ -35,8 +36,8 @@ type ProposalDetails = Array<ProposalDetail>;
 
 interface Threshold {
   requested: BN;
-  funds: BN;
-  supply: BN;
+  availableFunds: BN;
+  effectiveSupply: BN;
   alpha: number;
   params: {rho: number; beta: number};
 }
@@ -65,12 +66,16 @@ export class Snapshot {
       (participant) => participant.account,
     );
 
-    const {holderBalances, currentBlockNumber, supply} =
-      await fetchTokenHolders(
-        this.config.holdersConfig,
-        syncedHolders,
-        lastSyncedBlock,
-      );
+    const {
+      holderBalances,
+      currentBlockNumber,
+      supply: globalSupply,
+    } = await fetchTokenHolders(
+      this.config.holdersConfig,
+      syncedHolders,
+      lastSyncedBlock,
+    );
+
     snapshotInfoLog("Finish: fetching token state");
     const convictionDocs = await this.fetchConvictionsDocs(
       holderBalances.keys(),
@@ -87,7 +92,7 @@ export class Snapshot {
       proposalDetails,
       convictionDocs,
       holderBalances,
-      supply,
+      globalSupply,
     );
     snapshotInfoLog("Finish: calculate proposal convictions");
 
@@ -95,7 +100,7 @@ export class Snapshot {
     const nextParticipants = convictionDocs.map((c: ParticipantConviction) => {
       return {
         account: c.address,
-        convictions: c.convictions.commitId.toString(),
+        convictions: c.convictions?.commitId.toString(),
         // TODO: add getter function so this is cleaner
         // The fallback is technically unnecessary since the Map solely contains
         // holders of non-zero quantities of tokens
@@ -109,7 +114,7 @@ export class Snapshot {
       blockHeight: currentBlockNumber,
       participants: nextParticipants,
       proposals: nextProposals,
-      supply,
+      supply: globalSupply,
     };
 
     //snapshotDebugLog(`Start: Storing Next State: ${JSON.stringify(nextState)}`);
@@ -122,8 +127,17 @@ export class Snapshot {
     proposals: ProposalDetails,
     holderConvictions: HolderConvictionDocs,
     holderBalances: HolderBalances,
-    supply: string,
+    globalSupply: string,
   ): ProposalConvictions {
+    const availableFunds = this.config.treasury
+      ? holderBalances.get(this.config.treasury) ?? globalSupply
+      : globalSupply;
+    snapshotDebugLog(
+      "available funds: ",
+      availableFunds,
+      "\tglobal supply: ",
+      globalSupply,
+    );
     const nextConvictions: ProposalConvictions = [];
     for (const proposal of proposals) {
       // if proposal is already triggered, skip recalculation. There is no
@@ -140,6 +154,10 @@ export class Snapshot {
         nextConvictions.push(nextConviction);
         continue;
       }
+
+      const effectiveSupply = this.config.treasury
+        ? new BN(globalSupply).minus(availableFunds)
+        : new BN(globalSupply);
       const fundedSupport = this.sumSupport(
         proposal.proposal,
         holderConvictions,
@@ -147,8 +165,8 @@ export class Snapshot {
       );
       const threshold = this.triggerThreshold({
         requested: new BN(proposal.amount),
-        funds: fundedSupport,
-        supply: new BN(supply),
+        availableFunds: new BN(availableFunds),
+        effectiveSupply,
         alpha: this.ALPHA,
         params: {
           beta: this.BETA,
@@ -179,13 +197,19 @@ export class Snapshot {
     return nextConvictions;
   }
 
-  triggerThreshold({requested, funds, supply, alpha, params}: Threshold): BN {
+  triggerThreshold({
+    requested,
+    availableFunds,
+    effectiveSupply,
+    alpha,
+    params,
+  }: Threshold): BN {
     // TODO: make the available funds configurable to some address
     // instead of using the entire token supply
-    const share = requested.div(supply);
-    snapshotDebugLog({requested, funds, supply, alpha});
+    const share = requested.div(availableFunds);
+    snapshotDebugLog({requested, availableFunds, effectiveSupply, alpha});
     if (share.lt(params.beta)) {
-      const numerator = supply.times(params.rho);
+      const numerator = effectiveSupply.times(params.rho);
       const denominator = new BN(params.beta)
         .minus(share)
         .pow(2)
@@ -206,6 +230,7 @@ export class Snapshot {
   ): BN {
     let support = new BN(0);
     for (const doc of holderConvictions) {
+      if (!doc.convictions) continue;
       const proposalConvictions: Convictions = doc.convictions.content;
       const conviction = proposalConvictions.convictions.find(
         ({proposal}) => proposal === proposalId,
@@ -257,6 +282,9 @@ export class Snapshot {
       if (convictions && this.validateConvictions(convictions)) {
         snapshotDebugLog(`Adding convictions doc to state for ${address}`);
         holderConvictionDocs.push({address, convictions});
+      } else {
+        snapshotDebugLog(`Omitting convictions doc for ${address}`);
+        holderConvictionDocs.push({address});
       }
     }
     return holderConvictionDocs;

@@ -2,6 +2,7 @@ import {ethers} from "hardhat";
 import {Contract, ContractFactory} from "ethers";
 import chai from "chai";
 import {solidity} from "ethereum-waffle";
+import {checkEnvironment} from "../src/config";
 
 import {Config as HoldersConfig} from "../src/holders";
 import {SignerWithAddress} from "../src/types";
@@ -10,7 +11,6 @@ import {setEthCeramicProvider} from "./util";
 
 import {Storage} from "../src/types/storage.d";
 import {Snapshot} from "../src/snapshot";
-import {checkEnvironment} from "../src/config";
 
 chai.use(solidity);
 const {expect} = chai;
@@ -59,7 +59,7 @@ describe("snapshot", () => {
     await Token.transfer(accounts[1].address, 5);
     await Token.transfer(accounts[2].address, 5);
 
-    await Token.transfer(accounts[5].address, 100);
+    await Token.transfer(accounts[5].address, 490);
   });
   before(async () => {
     await createMockProposal(2, 100);
@@ -95,7 +95,6 @@ describe("snapshot", () => {
   });
   it("triggers after conviction builds over multiple calculations", async () => {
     await snapshot.updateSnapshot();
-    await snapshot.updateSnapshot();
     const state = await ceramicStorage.fetchOrCreateStateDocument();
     const {proposals, participants} = state;
     expect(proposals.length).to.equal(2);
@@ -105,9 +104,9 @@ describe("snapshot", () => {
     });
     expect(proposals[1]).to.contain({
       triggered: true,
-      totalConviction: "684.275",
+      totalConviction: "479.75",
     });
-    expect(participants.length).to.equal(2);
+    expect(participants.length).to.equal(3);
     expect(participants[0]).to.contain({
       account: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       balance: "505",
@@ -115,6 +114,30 @@ describe("snapshot", () => {
     expect(participants[1]).to.contain({
       account: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
       balance: "505",
+    });
+  });
+  describe("configured treasury", () => {
+    before(async () => {
+      await createMockProposal(4, 0);
+      await ceramicStorage.addProposals(accounts[4].address);
+    });
+    it("changes threshold when the treasury balance changes", async () => {
+      await Token.mint(accounts[4].address, 200);
+      const snapshot = new Snapshot(ceramicStorage, {
+        holdersConfig: config,
+        treasury: accounts[5].address,
+        beta: 0.25,
+      });
+      await snapshot.updateSnapshot();
+      await snapshot.updateSnapshot();
+
+      const state = await ceramicStorage.fetchOrCreateStateDocument();
+
+      const {proposals} = state;
+      expect(proposals[2]).to.contain({
+        triggered: true,
+        totalConviction: "100",
+      });
     });
   });
 });
