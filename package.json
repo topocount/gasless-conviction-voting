@@ -8,6 +8,7 @@
     "prettify": "npx prettier -w '**/*.{ts,js,md,yml}'",
     "check-pretty": "npx prettier -c '**/*.{ts,js,md,yml}'",
     "lint": "eslint .",
+    "start": "npx ts-node src/server.ts",
     "test": "./scripts/test.sh"
   },
   "devDependencies": {
