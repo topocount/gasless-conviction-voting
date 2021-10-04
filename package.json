@@ -1,6 +1,6 @@
 {
-  "name": "gasless-conviction-service",
-  "version": "0.0.0",
+  "name": "@topocount/gasless-conviction-service",
+  "version": "0.0.1",
   "description": "A service that periodically calculates conviction using the Ethereum blockchain and Ceramic",
   "author": "Kevin Siegler <17910833+topocount@users.noreply.github.com>",
   "license": "MIT",
