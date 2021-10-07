@@ -49,7 +49,13 @@ a Ceramic private key. This allows only the service to manage the conviction
 state document.
 
 The purpose of the conviction state document is that all the provided
-details on the document should be used to
+contents of the document could be used to provably reproduce the shown
+conviction score for each proposal, therefore minimizing trust. The only
+detail that is not easy to replicate is the trigger state, because the
+service does not own the proposal docs, and the owners can change the amounts
+at any point in time, rendering the trigger status outdated. However, it is
+possible to find the commit that matches up with the state document's commit
+time, but that's encapsulated within Ceramic's API.
 
 ### EVM JSON-RPC
 
@@ -59,11 +65,11 @@ In order to support this, blockchain state is taken directly from an RPC
 endpoint, which is effectively unopinionate. The real source can be an Infura
 endpoint, or even just a full (non-archive) node running in someone's home.
 
-[metadreamers proposal]: https://forum.gnosis.io/t/rfp-off-chain-conviction-voting/1320
-
 ## Pieces
 
-### Frontend
+### SDK / Frontend
+
+The [SDK] is a separate package.
 
 - View proposals and current conviction values
 - Authenticate Users
@@ -73,7 +79,9 @@ endpoint, or even just a full (non-archive) node running in someone's home.
     reached the trigger threshold
 
 > TODO: How do we denote proposals that have been enacted without onchain
-> execution?
+> execution? This is currently left to frontend developers' discretion.
+
+[sdk]: https://github.com/topocount/conviction-voting-sdk
 
 ### Service
 
